@@ -1,0 +1,197 @@
+-------------------------------------------------------------------------------
+--             Formatted_Output_NG package for Ada documentation             --
+-------------------------------------------------------------------------------
+
+Right justification is the default for all data types.
+
+Escape sequences in format strings:
+   \n   line feed
+   \r   carriage return
+   \b   backspace
+   \t   horizontal tab
+   \f   form feed
+
+----------------------------
+Format sequences for strings
+----------------------------
+%[flags][<width>]s
+
+Flag characters can be:
+   +   The converted value is to be right adjusted on the field boundary.
+       (This is default.)
+   -   The converted value is to be left adjusted on the field boundary.
+       (The default is right justification.)
+   *   The converted value is to be center adjusted on the field boundary.
+       (The default is right justification.)
+
+<width> is decimal number specifying minimal field width.
+
+Examples:
+   +"%s" & "Hello"                      "Hello"
+   +"%9s" & "Hello"                     "    Hello"
+   +"%-7s" & "Hello"                    "Hello  "
+   +"%*11s" & "Hello"                   "   Hello   "
+
+--------------------------------------
+Format sequences for enumeration types
+--------------------------------------
+%[flags][<width>](c|u|l)
+
+Flag characters can be:
+   +   The converted value is to be right adjusted on the field boundary.
+       (This is default.)
+   -   The converted value is to be left adjusted on the field boundary.
+       (The default is right justification.)
+   *   The converted value is to be center adjusted on the field boundary.
+       (The default is right justification.)
+
+<width> is decimal number specifying minimum field width.
+
+Format specifier can be:
+   m   convert capitalized.
+   u   convert in lower case.
+   l   convert in upper case.
+
+Examples:
+   +"%u" & Red                          "RED"
+   +"%9u" & Red                         "      RED"
+   +"%-7m" & Red                        "Red    "
+   +"%*11l" & Red                       "    red    "
+
+----------------------------------------------
+Format sequences for integer and modular types
+----------------------------------------------
+%[flags][<width>](d|x|X|o|b)
+
+Flag characters can be:
+   -   The converted value is to be left adjusted on the field boundary.
+       (The default is right justification.)
+   *   The converted value is to be center adjusted on the field boundary.
+       (The default is right justification.)
+   +   A sign (+ or -) should always be placed before a number produced by a
+       signed conversion. By default, a sign is used only for negative numbers.
+   #   Used with o, x or X specifiers the value is use with Base.
+   0   The value should be zero padded.
+   _   The output is to be grouped with grouping character '_'.
+       Group size is 3 for Base = 10 and 4 for other.
+   '   For decimal conversion (d) the output is to be grouped with thousands'
+       grouping characters if the locale information indicates any.
+
+<width> is decimal number specifying minimum field width.
+
+Format specifier can be:
+   d   Convert as decimal.
+   x   Convert as hexadecimal (lowercase).
+   X   Convert as hexadecimal (uppercase).
+   o   Convert as octal.
+   b   Convert as binary.
+
+Examples:
+   +"%d" & 123                          "123"
+   +"%d" & -123                         "-123"
+   +"%x" & 123                          "7b"
+   +"%b" & 123                          "1111011"
+   +"%_b" & 123                         "111_1011"
+   +"%8X" & 123                         "      7B"
+   +"%08x" & 123                        "0000007b"
+   +"%*07d" & 123                       "00123  "
+   +"%*08d" & -123                      "-00123  "
+
+-----------------------------------------
+Format sequences for floating point types
+-----------------------------------------
+%[flags][<width>[.<width_aft>]](e|f|g)
+
+Flag characters can be:
+   -   The converted value is to be left adjusted on the field boundary.
+       (The default is right justification.)
+   *   The converted value is to be center adjusted on the field boundary.
+       (The default is right justification.)
+   +   A sign (+ or -) should always be placed before a number produced by a
+       signed conversion. By default, a sign is used only for negative numbers.
+   #   Used with o, x or X specifiers the value is use with Base.
+   0   The value should be zero padded.
+   _   The output is to be grouped with grouping character '_'. Group size is 3.
+   '   The output is to be grouped with thousands' grouping characters if the
+       locale information indicates any.
+
+<width> is decimal number specifying minimal field width.
+
+<width_aft> is decimal number specifying number of digits after decimal point.
+
+Format specifier can be:
+   e   Convert to exponential representation. Uses the letter 'e' (lowercase).
+   E   Convert to exponential representation. Uses the letter 'E' (uppercase).
+   f   Convert without exponent field.
+   g   Convert to shortest representation without any trailing zeroes.
+
+Examples:
+   +"%E" & 1234.5                       "1.23450E+03"
+   +"%f" & 1234.5                       "1234.50000"
+   +"%g" & 1234.5                       "1234.5"
+   +"%10.3e" & 1234.5                   " 1.235e+03"
+   +"%10.3f" & 1234.5                   "  1234.500"
+   +"%10.3g" & 1234.5                   "    1234.5"
+   +"%010.3e" & 1234.5                  "01.235e+03"
+   +"%010.3f" & 1234.5                  "001234.500"
+   +"%_010.3g" & 1234.5                 "00_001_234.5"
+
+-----------------------------------
+Format sequences for character type
+-----------------------------------
+
+------------------------------
+Format sequences for time type
+------------------------------
+%[picture]
+
+Picture is a string to describe date and time output format. The string
+is a set of standard character and special tag that are replaced by the
+corresponding values. It follows the GNU Date specification. Here are
+the recognized directives :
+   %%   a literal '%'
+   \n   a newline
+   \t   a horizontal tab
+
+Time fields:
+   %H   hour (00..23)
+   %I   hour (01..12)
+   %k   hour ( 0..23)
+   %l   hour ( 1..12)
+   %M   minute (00..59)
+   %p   locale's AM or PM; blank if not known
+   %P   like %p, but lower case
+   %r   locale's time, 12-hour (hh:mm:ss [AP]M)
+   %R   time, 24-hour (hh:mm)
+   %s   seconds since 1970-01-01 00:00:00 UTC (a nonstandard extension)
+   %S   second (00..59)
+   %T   time, 24-hour (hh:mm:ss)
+
+Date fields:
+   %a   locale's abbreviated weekday name (Sun..Sat)
+   %A   locale's full weekday name, variable length (Sunday..Saturday)
+   %b   locale's abbreviated month name (Jan..Dec)
+   %B   locale's full month name (January..December)
+   %c   locale's date and time (Sat Nov 04 12:02:33 EST 1989)
+   %C   century; like %Y, except omit last two digits (e.g., 20)
+   %d   day of month (01..31)
+   %D   date (mm/dd/yy)
+   %e   like %d, but a leading zero is replaced by a space ( 1..31)
+   %h   same as %b
+   %j   day of year (001..366)
+   %m   month (01..12)
+   %u   day of week (1..7) with 1 corresponding to Monday
+   %U   week number of year with Sunday as first day of week (00..53)
+   %w   day of week (0..6) with 0 corresponding to Sunday
+   %W   week number of year with Monday as first day  of week (00..53)
+   %x   locale's date representation
+   %X   locale's time representation
+   %y   last two digits of year (00..99)
+   %Y   year (1970...)
+   %z   +hhmm numeric time zone (e.g., -0400)
+   %Z   alphabetic time zone abbreviation (e.g., EDT)
+
+By default, date pads numeric fields with zeroes. GNU date recognizes
+the following nonstandard numeric modifiers :
+    -   (hyphen) do not pad the field
+    _   (underscore) pad the field with spaces
