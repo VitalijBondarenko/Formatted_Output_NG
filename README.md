@@ -13,6 +13,8 @@ can be put in a directory and used as-is.
 For users of GNAT compiler library has project file `formatted_output_ng.gpr`,
 which can be used in your project and in the GNAT Programming Studio (GPS).
 
+To build library, you will need AdaNLS (https://github.com/VitalijBondarenko/adanls).
+
 Example of use
 --------------
 See Formatted_Output_NG_Demo project in the file `formatted_output_ng_demo.gpr`.
