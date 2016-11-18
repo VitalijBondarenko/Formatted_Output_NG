@@ -1,5 +1,9 @@
 Formatted_Output_NG
 ===================
+The library provide localizable formatted text output formatted output. You call
+functions with a format string or template string that specifies how to format
+the values.
+
 Formatted_Output_NG project is the fork of Formatted_Output package for Ada-95
 by Eugene Nonko <cm@liceum.secna.ru>.
 
