@@ -457,12 +457,12 @@ package body Formatted_Output.Time_Output is
 
                   --  Locale's abbreviated month name (Jan..Dec)
                when 'b' | 'h' =>
-                  Result := Result & Mon_Abbr_Name (Date);
+                  Result := Result & Mon_Abbr_Name (Month);
 
                   --  Locale's full month name, variable length
                   --  (January..December).
                when 'B' =>
-                  Result := Result & Mon_Full_Name (Date);
+                  Result := Result & Mon_Full_Name (Month);
 
                   --  Locale's date and time (Sat Nov 04 12:02:33 EST 1989)
                when 'c' =>

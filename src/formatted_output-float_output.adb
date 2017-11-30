@@ -174,14 +174,20 @@ package body Formatted_Output.Float_Output is
       Pre_First   : Natural := Maximal_Float_Item_Length;
       Last        : Natural := Maximal_Float_Item_Length;
 
+      Item        : Item_Type := Value;
+
    begin
       if Initial_Width_After = 0 then
+         if Strip_Trailing_Zeroes then
+            Item := Item_Type'Rounding (Value);
+         end if;
+
          Width_After := Default_Aft;
       else
          Width_After := Initial_Width_After;
       end if;
 
-      Put (Img, Value, Aft => Field (Width_After), Exp => Field (Width_Exp));
+      Put (Img, Item, Aft => Field (Width_After), Exp => Field (Width_Exp));
 
       while Img (Pre_First) /= ' ' loop
          Pre_First := Pre_First - 1;
@@ -197,7 +203,7 @@ package body Formatted_Output.Float_Output is
          end if;
       end if;
 
-      if Value > 0.0 and then Force_Sign then
+      if Item > 0.0 and then Force_Sign then
          Img (Pre_First) := '+';
          Pre_First := Pre_First - 1;
       end if;
@@ -293,11 +299,20 @@ package body Formatted_Output.Float_Output is
                   return Format_Type (Fmt_Copy);
 
                when 'f'        =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format
-                       (Value, Width, Width_After, False, Leading_Zero,
-                        0, Justification, Force_Sign, Digit_Groups));
+                  if After_Point and then Width_After = 0 then
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Width_After, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  else
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Width_After, False, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  end if;
+
                   return Format_Type (Fmt_Copy);
 
                when 'g'        =>

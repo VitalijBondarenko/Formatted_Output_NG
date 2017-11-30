@@ -31,7 +31,8 @@ with Ada.Text_IO;           use Ada.Text_IO;
 
 package Formatted_Output is
 
-   type Format_Type is limited private;
+--     type Format_Type is limited private;
+   type Format_Type is private;
 --     type Format_Type is new Ada.Strings.Unbounded.Unbounded_String;
 
    Empty_Format : constant Format_Type;
