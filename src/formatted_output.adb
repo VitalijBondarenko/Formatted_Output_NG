@@ -238,7 +238,7 @@ package body Formatted_Output is
    -----------------------------
 
    function Decimal_Point_Character return String is
-      Lconv : Lconv_Access := Localeconv;
+      Lconv : C_Lconv_Access := C_Localeconv;
 
    begin
       if Lconv.Decimal_Point = Null_Ptr then
@@ -255,7 +255,7 @@ package body Formatted_Output is
    -----------------------------
 
    function Thousands_Sep_Character return String is
-      Lconv : Lconv_Access := Localeconv;
+      Lconv : C_Lconv_Access := C_Localeconv;
 
    begin
       if Lconv.Thousands_Sep = Null_Ptr then

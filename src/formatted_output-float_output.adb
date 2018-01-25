@@ -316,11 +316,26 @@ package body Formatted_Output.Float_Output is
                   return Format_Type (Fmt_Copy);
 
                when 'g'        =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format
-                       (Value, Width, Width_After, True, Leading_Zero,
-                        0, Justification, Force_Sign, Digit_Groups));
+                  if After_Point and then Width_After = 0 then
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, 1, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  elsif not After_Point then
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Default_Aft, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  else
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Width_After, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  end if;
+
                   return Format_Type (Fmt_Copy);
 
                when '_'        =>
