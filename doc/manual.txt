@@ -48,9 +48,9 @@ Flag characters can be:
 <width> is decimal number specifying minimum field width.
 
 Format specifier can be:
-   m   convert capitalized.
-   u   convert in lower case.
-   l   convert in upper case.
+   c   convert capitalized.
+   u   convert in upper case.
+   l   convert in lower case.
 
 Examples:
    +"%u" & Red                          "RED"

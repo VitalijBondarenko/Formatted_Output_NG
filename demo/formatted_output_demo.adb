@@ -88,7 +88,7 @@ begin
    Ada.Text_IO.New_Line;
 
    Formatted_Output.Put_Line
-     (+"Unsigned_64 type range:\n\t%_30d .. %-_30d"
+     (+"Unsigned_64 type range:\n\t%_35d .. %-_35d"
       & Unsigned_64'First & Unsigned_64'Last);
    Ada.Text_IO.New_Line;
 
