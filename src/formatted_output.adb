@@ -51,16 +51,13 @@ package body Formatted_Output is
    ---------------
 
    function To_String (Fmt : Format_Type) return String is
-      CR : constant String (1 .. 1) := (1 => ASCII.CR);
-      LF : constant String (1 .. 1) := (1 => ASCII.LF);
-      BS : constant String (1 .. 1) := (1 => ASCII.BS);
-      HT : constant String (1 .. 1) := (1 => ASCII.HT);
-      FF : constant String (1 .. 1) := (1 => ASCII.FF);
-
-      I : Integer := 1;
-      
+      CR       : constant String (1 .. 1) := (1 => ASCII.CR);
+      LF       : constant String (1 .. 1) := (1 => ASCII.LF);
+      BS       : constant String (1 .. 1) := (1 => ASCII.BS);
+      HT       : constant String (1 .. 1) := (1 => ASCII.HT);
+      FF       : constant String (1 .. 1) := (1 => ASCII.FF);
+      I        : Integer := 1;
       Fmt_Copy : Unbounded_String := Unbounded_String (Fmt);
-
    begin
       while I < Length (Fmt_Copy) loop
          if Element (Fmt_Copy, I) = '\' then
@@ -109,7 +106,6 @@ package body Formatted_Output is
       Justification : Alignment) return String
    is
       Width : Integer;
-
    begin
       if Initial_Width < Value'Length then
          Width := Value'Length;
@@ -136,7 +132,6 @@ package body Formatted_Output is
       Justification_Changed : Boolean := False;
       Justification         : Alignment := Right;
       Fmt_Copy              : Unbounded_String;
-
    begin
       if Command_Start /= 0 then
          Fmt_Copy := Unbounded_String (Fmt);
@@ -216,7 +211,6 @@ package body Formatted_Output is
 
    function Scan_To_Percent_Sign (Fmt : Format_Type) return Integer is
       I : Natural := 1;
-      
    begin
       while I < Length (Fmt) loop
          if Element (Fmt, I) = '%' then
@@ -239,7 +233,6 @@ package body Formatted_Output is
 
    function Decimal_Point_Character return String is
       Lconv : C_Lconv_Access := C_Localeconv;
-
    begin
       if Lconv.Decimal_Point = Null_Ptr then
          return Ada_Dec_Point_Character;
@@ -256,7 +249,6 @@ package body Formatted_Output is
 
    function Thousands_Sep_Character return String is
       Lconv : C_Lconv_Access := C_Localeconv;
-
    begin
       if Lconv.Thousands_Sep = Null_Ptr then
          return "";
@@ -287,7 +279,6 @@ package body Formatted_Output is
       Tmp : Unbounded_String := Null_Unbounded_String;
       I   : Integer;
       J   : Integer := Text_Value'Last;
-
    begin
       while J >= Text_Value'First loop
          I := J - Group_Size + 1;
@@ -320,7 +311,6 @@ package body Formatted_Output is
       Tmp : Unbounded_String := Null_Unbounded_String;
       NS1 : Natural := Index (Text_Value, "#", Text_Value'First);
       NS2 : Natural;
-
    begin
       if NS1 > 0 then
          NS2 := Index (Text_Value, "#", NS1 + 1);
@@ -363,7 +353,6 @@ package body Formatted_Output is
       FD  : Natural := Index_Non_Blank (Img, Forward);
       Cur : Natural := 0;
       NS1 : Natural := Index (Img, "#", Img'First);
-
    begin
       if Img (FD) = '-' or else Img (FD) = '+' then
          S (1) := Img (FD);
@@ -399,7 +388,6 @@ package body Formatted_Output is
       NS2 : Natural := 0;
       I   : Integer := 0;
       J   : Integer := 0;
-      
    begin
       if Separator'Length = 0 then
          return Set_Leading_Zero (Img);

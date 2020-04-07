@@ -50,7 +50,6 @@ package body Formatted_Output.Modular_Output is
       FD  : Natural := Index_Non_Blank (Text_Value, Forward);
       LD  : Natural := Index_Non_Blank (Text_Value, Backward);
       Res : Unbounded_String := Null_Unbounded_String;
-
    begin
       if Separator'Length = 0 then
          return Text_Value;
@@ -88,7 +87,6 @@ package body Formatted_Output.Modular_Output is
       Real_Width : Integer;
       Pre_First  : Natural;
       Last       : Natural;
-
    begin
       Put (Img, Value, Base);
       Last := Maximal_Item_Length;
@@ -180,7 +178,6 @@ package body Formatted_Output.Modular_Output is
       Force_Base            : Boolean := False;
       Digit_Groups          : Digit_Grouping := None;
       Fmt_Copy              : Unbounded_String;
-
    begin
       if Command_Start /= 0 then
          Fmt_Copy := Unbounded_String (Fmt);

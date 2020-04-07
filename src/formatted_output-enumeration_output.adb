@@ -53,7 +53,6 @@ package body Formatted_Output.Enumeration_Output is
       Width      : Integer;
       Real_Width : Integer;
       Past_Last  : Integer := 1;
-
    begin
       case Style is
          when Capitalized =>
@@ -100,7 +99,6 @@ package body Formatted_Output.Enumeration_Output is
       Justification_Changed : Boolean := False;
       Justification         : Alignment := Right;
       Fmt_Copy              : Unbounded_String;
-
    begin
       if Command_Start /= 0 then
          Fmt_Copy := Unbounded_String (Fmt);

@@ -1,4 +1,4 @@
-with "../adanls_mp/adanls_mp.gpr";
+with "../adanls/adanls.gpr";
 
 project Formatted_Output_NG is
 

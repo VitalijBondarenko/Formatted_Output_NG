@@ -53,16 +53,17 @@ package Formatted_Output.Time_Output is
    --
    --  Time fields:
    --
-   --     %H   hour (00..23)
-   --     %I   hour (01..12)
-   --     %k   hour ( 0..23)
-   --     %l   hour ( 1..12)
-   --     %M   minute (00..59)
+   --     %H   hour (00 .. 23)
+   --     %I   hour (01 .. 12)
+   --     %k   hour ( 0 .. 23)
+   --     %l   hour ( 1 .. 12)
+   --     %M   minute (00 .. 59)
+   --     %N   nanoseconds (000000000 .. 999999999)
    --     %p   locale's AM or PM; blank if not known
    --     %P   like %p, but lower case
    --     %r   locale's time, 12-hour (hh:mm:ss [AP]M)
    --     %R   time, 24-hour (hh:mm)
-   --     %s   seconds since 1970-01-01 00:00:00 UTC (a nonstandard extension)
+   --     %s   seconds since 1970-01-01 00:00:00 UTC
    --     %S   second (00..59)
    --     %T   time, 24-hour (hh:mm:ss)
    --
@@ -92,9 +93,14 @@ package Formatted_Output.Time_Output is
    --     %Z   alphabetic time zone abbreviation (e.g., EDT)
    --
    --  By default, date pads numeric fields with zeroes. GNU date recognizes
-   --  the following nonstandard numeric modifiers :
+   --  the following optional numeric modifiers:
    --
    --      -   (hyphen) do not pad the field
    --      _   (underscore) pad the field with spaces
+   --
+   --  Here are some extensions to the GNU Date specification:
+   --
+   --          %i   milliseconds (3 digits)
+   --          %o   microseconds (6 digits)
 
 end Formatted_Output.Time_Output;

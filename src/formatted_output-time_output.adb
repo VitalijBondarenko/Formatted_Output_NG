@@ -149,7 +149,6 @@ package body Formatted_Output.Time_Output is
       Local : constant String :=
         Ada.Characters.Handling.To_Upper (Str (Str'First)) &
         Ada.Characters.Handling.To_Lower (Str (Str'First + 1 .. Str'Last));
-
    begin
       if Length = 0 then
          return Local;
@@ -188,7 +187,6 @@ package body Formatted_Output.Time_Output is
       --  Local Declarations
       NI  : constant String := Sec_Number'Image (N);
       NIP : constant String := Pad_Char & NI (2 .. NI'Last);
-
    begin
       if Length = 0 or else Padding = None then
          return NI (2 .. NI'Last);
@@ -212,7 +210,6 @@ package body Formatted_Output.Time_Output is
       A  : Integer := (14 - IM) / 12;
       Y  : Integer := IY + 4800 - A;
       M  : Integer := IM + 12 * A - 3;
-
    begin
       return
         ID + (153 * M + 2) / 5 + 365 * Y + Y / 4 - Y / 100 + Y / 400 - 32045;
@@ -224,7 +221,6 @@ package body Formatted_Output.Time_Output is
       Day   : Day_Number;
       Sec   : Day_Duration;
       pragma Unreferenced (Sec);
-
    begin
       Split (Date, Year, Month, Day, Sec);
       return Julian_Day (Year, Month, Day);
@@ -263,7 +259,6 @@ package body Formatted_Output.Time_Output is
       Day   : Day_Number;
       Sec   : Day_Duration;
       pragma Unreferenced (Year, Day, Sec);
-
    begin
       Split (Date, Year, Month, Day, Sec);
       return Mon_Abbr_Name (Month);
@@ -284,7 +279,6 @@ package body Formatted_Output.Time_Output is
       Day   : Day_Number;
       Sec   : Day_Duration;
       pragma Unreferenced (Year, Day, Sec);
-
    begin
       Split (Date, Year, Month, Day, Sec);
       return Mon_Full_Name (Month);
@@ -298,11 +292,9 @@ package body Formatted_Output.Time_Output is
      (Picture : String;
       Date    : Ada.Calendar.Time) return String
    is
-      Padding : Padding_Mode := Zero;
+      Padding    : Padding_Mode := Zero;
       --  Padding is set for one directive
-
-      Result  : Unbounded_String;
-
+      Result     : Unbounded_String;
       Year       : Year_Number;
       Month      : Month_Number;
       Day        : Day_Number;
@@ -310,9 +302,7 @@ package body Formatted_Output.Time_Output is
       Minute     : Minute_Number;
       Second     : Second_Number;
       Sub_Second : Second_Duration;
-
-      P : Positive;
-
+      P          : Positive;
    begin
       --  Get current time in split format
       Split (Date, Year, Month, Day, Hour, Minute, Second, Sub_Second);
@@ -438,6 +428,38 @@ package body Formatted_Output.Time_Output is
                   --  Second (00..59)
                when 'S' =>
                   Result := Result & Image (Second, Padding, 2);
+
+               --  Milliseconds (3 digits)
+               --  Microseconds (6 digits)
+               --  Nanoseconds  (9 digits)
+               when 'i' | 'o' | 'N' =>
+                  declare
+                     Sub_Sec : constant Long_Integer :=
+                                 Long_Integer (Sub_Second * 1_000_000_000);
+
+                     Img1  : constant String := Sub_Sec'Img;
+                     Img2  : constant String :=
+                               "00000000" & Img1 (Img1'First + 1 .. Img1'Last);
+                     Nanos : constant String :=
+                               Img2 (Img2'Last - 8 .. Img2'Last);
+
+                  begin
+                     case Picture (P + 1) is
+                        when 'i' =>
+                           Result := Result &
+                             Nanos (Nanos'First .. Nanos'First + 2);
+
+                        when 'o' =>
+                           Result := Result &
+                             Nanos (Nanos'First .. Nanos'First + 5);
+
+                        when 'N' =>
+                           Result := Result & Nanos;
+
+                        when others =>
+                           null;
+                     end case;
+                  end;
 
                   --  Time, 24-hour (hh:mm:ss)
                when 'T' =>

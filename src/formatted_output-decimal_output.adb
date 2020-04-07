@@ -44,7 +44,6 @@ package body Formatted_Output.Decimal_Output is
       Group_Size : Integer) return String
    is
       DP : Natural := 0;
-
    begin
       DP := Index (Text_Value, Dec_Point, Text_Value'First);
 
@@ -76,7 +75,6 @@ package body Formatted_Output.Decimal_Output is
       EL  : Natural := Index (Text_Value, "e", Text_Value'Last, Backward);
       EU  : Natural := Index (Text_Value, "E", Text_Value'Last, Backward);
       Res : Unbounded_String := Null_Unbounded_String;
-
    begin
       if Separator'Length = 0 then
          return Text_Value;
@@ -148,7 +146,6 @@ package body Formatted_Output.Decimal_Output is
       Real_Width  : Integer;
       Pre_First   : Natural := Maximal_Item_Length;
       Last        : Natural := Maximal_Item_Length;
-
    begin
       if Initial_Width_After = 0 then
          Width_After := Default_Aft;
@@ -241,7 +238,6 @@ package body Formatted_Output.Decimal_Output is
       Force_Sign            : Boolean := False;
       Digit_Groups          : Digit_Grouping := None;
       Fmt_Copy              : Unbounded_String;
-
    begin
       if Command_Start /= 0 then
          Fmt_Copy := Unbounded_String (Fmt);
