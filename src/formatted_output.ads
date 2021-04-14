@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016 Vitalij Bondarenko <vibondare@gmail.com>              --
+-- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -39,6 +39,10 @@ package Formatted_Output is
    --  Convert formatted string to fixed-length string
    --  Example:
    --     Send_To_Terminal (To_String (+"Hello %s\n" & "world"));
+
+   function "-" (Fmt : Format_Type) return String
+                 renames Formatted_Output.To_String;
+   --  Convert formatted string to fixed-length string
 
    function To_Format (Fmt_String : String) return Format_Type;
    --  Converts String to Format_Type
@@ -80,7 +84,7 @@ private
    type Format_Type is new Ada.Strings.Unbounded.Unbounded_String;
    
    Empty_Format        : constant Format_Type := To_Unbounded_String ("");
-   Maximal_Item_Length : constant := 255; --128;
+   Maximal_Item_Length : constant := 255;
 
    function Scan_To_Percent_Sign (Fmt : Format_Type) return Integer;
    --  Scans string to the first occurence of percent sign ignoring the double
@@ -94,8 +98,10 @@ private
    Ada_Dec_Point_Character : constant String := ".";
    Ada_Sep_Character       : constant String := "_";
    
-   type Digit_Grouping is (None, Ada_Style, NLS_Style);
-   
+   type Digit_Grouping is (None, Ada_Grouping_Style, NLS_Grouping_Style);
+
+   type Base_Style_Kind is (None, C_Base_Style, Ada_Base_Style);
+
    function Separate_Digit_Groups
      (Text_Value : String;
       Separator  : String;
@@ -107,16 +113,16 @@ private
    --  Separator  : The character used to separate groups of digits.
    --  Group_Size : Size of the group of digits.
    
-   function Separate_Based_Digit_Groups
-     (Text_Value : String;
-      Separator  : String;
-      Group_Size : Integer) return String;
-   --  Separate the digit groups for the image with base.
-   --
-   --  Text_Value : Image of the value as a string without leading and trailing
-   --               spaces.
-   --  Separator  : The character used to separate groups of digits.
-   --  Group_Size : Size of the group of digits.
+   --  function Separate_Based_Digit_Groups
+   --    (Text_Value : String;
+   --     Separator  : String;
+   --     Group_Size : Integer) return String;
+   --  --  Separate the digit groups for the image with base.
+   --  --
+   --  --  Text_Value : Image of the value as a string without leading and trailing
+   --  --               spaces.
+   --  --  Separator  : The character used to separate groups of digits.
+   --  --  Group_Size : Size of the group of digits.
    
    function Set_Leading_Zero (Img : String) return String;
    function Set_Leading_Zero

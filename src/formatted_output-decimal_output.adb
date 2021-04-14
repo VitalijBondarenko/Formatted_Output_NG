@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016 Vitalij Bondarenko <vibondare@gmail.com>              --
+-- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -34,8 +34,35 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 package body Formatted_Output.Decimal_Output is
 
-   package Item_Type_IO is new Decimal_IO (Item_Type);
+   package Item_Type_IO is new Ada.Text_IO.Decimal_IO (Item_Type);
    use Item_Type_IO;
+
+   function Format
+     (Value                 : Item_Type;
+      Initial_Width         : Integer;
+      Initial_Width_After   : Integer;
+      Strip_Trailing_Zeroes : Boolean;
+      Leading_Zero          : Boolean;
+      Width_Exp             : Integer;
+      Justification         : Alignment;
+      Force_Sign            : Boolean;
+      Digit_Groups          : Digit_Grouping) return String;
+
+   function Set_Float_Leading_Zero
+     (Text_Value : String;
+      Separator  : String;
+      Dec_Point  : String;
+      Group_Size : Integer) return String;
+
+   function Separate_Float_Digit_Groups
+     (Text_Value : String;
+      Separator  : String;
+      Dec_Point  : String;
+      Group_Size : Integer) return String;
+
+   ----------------------------
+   -- Set_Float_Leading_Zero --
+   ----------------------------
 
    function Set_Float_Leading_Zero
      (Text_Value : String;
@@ -111,14 +138,15 @@ package body Formatted_Output.Decimal_Output is
            (if DP > 0 then
               (if EL + EU > 0 then Text_Value (DP + 1 .. EP - 1)
                else Text_Value (DP + 1 .. EP))
-            else Text_Value (FD .. EP));
+            else "");
          FS : String :=
            (if Separator /= Ada_Sep_Character then "" else Separator);
       begin
          Res := Res
            & Separate_Digit_Groups (I, Separator, Group_Size)
-           & Dec_Point
-           & Separate_Digit_Groups (F, FS, Group_Size)
+           & (if DP > 0 then
+                 Dec_Point & Separate_Digit_Groups (F, FS, Group_Size)
+              else "")
            & E;
       end;
 
@@ -187,19 +215,20 @@ package body Formatted_Output.Decimal_Output is
          V : String := Img (Pre_First + 1 .. Last);
          T : Unbounded_String;
          L : String :=
-           (if Digit_Groups = NLS_Style then Thousands_Sep_Character
-            elsif Digit_Groups = Ada_Style then Ada_Sep_Character
+           (if Digit_Groups = NLS_Grouping_Style then Thousands_Sep_Character
+            elsif Digit_Groups = Ada_Grouping_Style then Ada_Sep_Character
             else "");
          P : String :=
-           (if Digit_Groups = NLS_Style then Decimal_Point_Character
+           (if Digit_Groups = NLS_Grouping_Style then Decimal_Point_Character
             else Ada_Dec_Point_Character);
          G : Integer := 3;
-         --             (if Digit_Groups = NLS_Style or Base = 10 then 3 else 4);
+         --  (if Digit_Groups = NLS_Style or Base = 10 then 3 else 4);
       begin
          case Digit_Groups is
-            when None                  =>
+            when None               =>
                T := To_Unbounded_String (V);
-            when Ada_Style | NLS_Style =>
+            when Ada_Grouping_Style
+               | NLS_Grouping_Style =>
                T := To_Unbounded_String
                  (Separate_Float_Digit_Groups (V, L, P, G));
          end case;
@@ -280,10 +309,10 @@ package body Formatted_Output.Decimal_Output is
                   return Format_Type (Fmt_Copy);
 
                when '_'        =>
-                  Digit_Groups := Ada_Style;
+                  Digit_Groups := Ada_Grouping_Style;
 
                when '''        =>
-                  Digit_Groups := NLS_Style;
+                  Digit_Groups := NLS_Grouping_Style;
 
                when '+'        =>
                   Force_Sign := True;

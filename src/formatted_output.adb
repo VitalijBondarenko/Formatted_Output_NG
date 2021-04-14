@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016 Vitalij Bondarenko <vibondare@gmail.com>              --
+-- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -299,50 +299,50 @@ package body Formatted_Output is
       when others => return "";
    end Separate_Digit_Groups;
 
-   ---------------------------------
-   -- Separate_Based_Digit_Groups --
-   ---------------------------------
-
-   function Separate_Based_Digit_Groups
-     (Text_Value : String;
-      Separator  : String;
-      Group_Size : Integer) return String
-   is
-      Tmp : Unbounded_String := Null_Unbounded_String;
-      NS1 : Natural := Index (Text_Value, "#", Text_Value'First);
-      NS2 : Natural;
-   begin
-      if NS1 > 0 then
-         NS2 := Index (Text_Value, "#", NS1 + 1);
-      else
-         return "";
-      end if;
-
-      declare
-         TS  : String := Text_Value (NS1 + 1 .. NS2 - 1);
-         I   : Integer;
-         J   : Integer := TS'Last;
-      begin
-         while J >= TS'First loop
-            I := J - Group_Size + 1;
-
-            if I <= TS'First then
-               Insert (Tmp, 1, TS (TS'First .. J));
-               exit;
-            end if;
-
-            Insert (Tmp, 1, Separator & TS (I .. J));
-            J := J - Group_Size;
-         end loop;
-      end;
-
-      Tmp := Text_Value (Text_Value'First .. NS1) & Tmp;
-      Tmp := Tmp & Text_Value (NS2 .. Text_Value'Last);
-      return To_String (Tmp);
-
-   exception
-      when others => return "";
-   end Separate_Based_Digit_Groups;
+   --  ---------------------------------
+   --  -- Separate_Based_Digit_Groups --
+   --  ---------------------------------
+   --  
+   --  function Separate_Based_Digit_Groups
+   --    (Text_Value : String;
+   --     Separator  : String;
+   --     Group_Size : Integer) return String
+   --  is
+   --     Tmp : Unbounded_String := Null_Unbounded_String;
+   --     NS1 : Natural := Index (Text_Value, "#", Text_Value'First);
+   --     NS2 : Natural;
+   --  begin
+   --     if NS1 > 0 then
+   --        NS2 := Index (Text_Value, "#", NS1 + 1);
+   --     else
+   --        return "";
+   --     end if;
+   --  
+   --     declare
+   --        TS : String := Text_Value (NS1 + 1 .. NS2 - 1);
+   --        I  : Integer;
+   --        J  : Integer := TS'Last;
+   --     begin
+   --        while J >= TS'First loop
+   --           I := J - Group_Size + 1;
+   --  
+   --           if I <= TS'First then
+   --              Insert (Tmp, 1, TS (TS'First .. J));
+   --              exit;
+   --           end if;
+   --  
+   --           Insert (Tmp, 1, Separator & TS (I .. J));
+   --           J := J - Group_Size;
+   --        end loop;
+   --     end;
+   --  
+   --     Tmp := Text_Value (Text_Value'First .. NS1) & Tmp;
+   --     Tmp := Tmp & Text_Value (NS2 .. Text_Value'Last);
+   --     return To_String (Tmp);
+   --  
+   --  exception
+   --     when others => return "";
+   --  end Separate_Based_Digit_Groups;
 
    ----------------------
    -- Set_Leading_Zero --

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016 Vitalij Bondarenko <vibondare@gmail.com>              --
+-- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -100,7 +100,7 @@ package Formatted_Output.Time_Output is
    --
    --  Here are some extensions to the GNU Date specification:
    --
-   --          %i   milliseconds (3 digits)
-   --          %o   microseconds (6 digits)
+   --     %i   milliseconds (3 digits)
+   --     %o   microseconds (6 digits)
 
 end Formatted_Output.Time_Output;

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016 Vitalij Bondarenko <vibondare@gmail.com>              --
+-- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -34,9 +34,23 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 package body Formatted_Output.Modular_Output is
 
-   package Item_Type_IO is new Modular_IO (Item_Type);
+   package Item_Type_IO is new Ada.Text_IO.Modular_IO (Item_Type);
    use Item_Type_IO;
  
+   function Separate_Modular_Digit_Groups
+     (Text_Value : String;
+      Separator  : String;
+      Group_Size : Integer) return String;
+   
+   function Format
+     (Value         : Item_Type;
+      Initial_Width : Integer;
+      Leading_Zero  : Boolean;
+      Base          : Integer;
+      Justification : Alignment;
+      Base_Style    : Base_Style_Kind;
+      Digit_Groups  : Digit_Grouping) return String;
+   
    -----------------------------------
    -- Separate_Modular_Digit_Groups --
    -----------------------------------
@@ -44,29 +58,19 @@ package body Formatted_Output.Modular_Output is
    function Separate_Modular_Digit_Groups
      (Text_Value : String;
       Separator  : String;
-      Group_Size : Integer;
-      Based      : Boolean) return String
+      Group_Size : Integer) return String
    is
       FD  : Natural := Index_Non_Blank (Text_Value, Forward);
       LD  : Natural := Index_Non_Blank (Text_Value, Backward);
-      Res : Unbounded_String := Null_Unbounded_String;
    begin
       if Separator'Length = 0 then
          return Text_Value;
       end if;
       
-      Res := Text_Value (Text_Value'First .. FD - 1) & Res;
-
-      if Based then
-         Res := Res & Separate_Based_Digit_Groups
-           (Text_Value (FD .. LD), Separator, Group_Size);
-      else
-         Res := Res & Separate_Digit_Groups
-           (Text_Value (FD .. LD), Separator, Group_Size);
-      end if;
-
-      Res := Res & Text_Value (LD + 1 .. Text_Value'Last);
-      return To_String (Res);
+      return
+        Text_Value (Text_Value'First .. FD - 1)
+        & Separate_Digit_Groups (Text_Value (FD .. LD), Separator, Group_Size)
+        & Text_Value (LD + 1 .. Text_Value'Last);
    end Separate_Modular_Digit_Groups;
 
    ------------
@@ -79,7 +83,7 @@ package body Formatted_Output.Modular_Output is
       Leading_Zero  : Boolean;
       Base          : Integer;
       Justification : Alignment;
-      Force_Base    : Boolean;
+      Base_Style    : Base_Style_Kind;
       Digit_Groups  : Digit_Grouping) return String
    is
       Img        : String (1 .. Maximal_Item_Length);
@@ -93,18 +97,12 @@ package body Formatted_Output.Modular_Output is
       Pre_First := Last;
 
       if Base /= 10 then
-         if not Force_Base then
-            Last := Maximal_Item_Length - 1;
-            Pre_First := Last;
+         Last := Maximal_Item_Length - 1;
+         Pre_First := Last;
          
-            while Img (Pre_First) /= ' ' and then Img (Pre_First) /= '#' loop
-               Pre_First := Pre_First - 1;
-            end loop;
-         else
-            while Img (Pre_First) /= ' ' loop
-               Pre_First := Pre_First - 1;
-            end loop;
-         end if;
+         while Img (Pre_First) /= ' ' and then Img (Pre_First) /= '#' loop
+            Pre_First := Pre_First - 1;
+         end loop;
       else
          while Img (Pre_First) /= ' ' loop
             Pre_First := Pre_First - 1;
@@ -124,26 +122,43 @@ package body Formatted_Output.Modular_Output is
          V : String := Img (Pre_First + 1 .. Last);
          T : Unbounded_String;
          L : String :=
-           (if Digit_Groups = NLS_Style then Thousands_Sep_Character
-            elsif Digit_Groups = Ada_Style then Ada_Sep_Character
+           (if Digit_Groups = NLS_Grouping_Style then Thousands_Sep_Character
+            elsif Digit_Groups = Ada_Grouping_Style then Ada_Sep_Character
             else "");
          G : Integer :=
-           (if Digit_Groups = NLS_Style or Base = 10 then 3 else 4);
+           (if Digit_Groups = NLS_Grouping_Style or Base = 10 then 3 else 4);
       begin
          case Digit_Groups is
-            when None      =>
+            when None               =>
                T := To_Unbounded_String (V);
-            when Ada_Style =>
+            when Ada_Grouping_Style =>
                T := To_Unbounded_String
-                 (Separate_Modular_Digit_Groups
-                    (V, L, G, Force_Base and Base /= 10));
-            when NLS_Style =>
+                 (Separate_Modular_Digit_Groups (V, L, G));
+            when NLS_Grouping_Style =>
                if Base = 10 then
                   T := To_Unbounded_String
-                    (Separate_Modular_Digit_Groups (V, L, G, False));
+                    (Separate_Modular_Digit_Groups (V, L, G));
                else
                   T := To_Unbounded_String (V);
                end if;
+         end case;
+
+         case Base_Style is
+            when None           =>
+               null;
+            when C_Base_Style   =>
+               case Base is
+                  when 8      => T := "0" & T;
+                  when 16     => T := "0x" & T;
+                  when others => null;
+               end case;
+            when Ada_Base_Style =>
+               case Base is
+                  when 2      => T := "2#" & T & "#";
+                  when 8      => T := "8#" & T & "#";
+                  when 16     => T := "16#" & T & "#";
+                  when others => null;
+               end case;
          end case;
 
          if Length (T) > Width then
@@ -175,7 +190,7 @@ package body Formatted_Output.Modular_Output is
       Digit_Occured         : Boolean := False;
       Justification_Changed : Boolean := False;
       Justification         : Alignment := Right;
-      Force_Base            : Boolean := False;
+      Base_Style            : Base_Style_Kind := None;
       Digit_Groups          : Digit_Grouping := None;
       Fmt_Copy              : Unbounded_String;
    begin
@@ -188,7 +203,8 @@ package body Formatted_Output.Modular_Output is
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
                      Format (Value, Width, Leading_Zero,
-                       10, Justification, Force_Base, Digit_Groups));
+                       10, Justification, Base_Style,
+                       Digit_Groups));
                   return Format_Type (Fmt_Copy);
                   
                when 'x'        =>
@@ -197,39 +213,47 @@ package body Formatted_Output.Modular_Output is
                      To_Lower
                        (Format
                             (Value, Width, Leading_Zero,
-                             16, Justification, Force_Base, Digit_Groups)));
+                             16, Justification, Base_Style,
+                             Digit_Groups)));
                   return Format_Type (Fmt_Copy);
                   
                when 'X'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format
-                       (Value, Width, Leading_Zero,
-                        16, Justification, Force_Base, Digit_Groups));
+                     To_Upper
+                       (Format
+                            (Value, Width, Leading_Zero,
+                             16, Justification, Base_Style,
+                             Digit_Groups)));
                   return Format_Type (Fmt_Copy);
                   
                when 'o'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
                      Format (Value, Width, Leading_Zero,
-                       8, Justification, Force_Base, Digit_Groups));
+                       8, Justification, Base_Style,
+                       Digit_Groups));
                   return Format_Type (Fmt_Copy);
                   
                when 'b'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
                      Format (Value, Width, Leading_Zero,
-                       2, Justification, Force_Base, Digit_Groups));
+                       2, Justification, Base_Style,
+                       Digit_Groups));
                   return Format_Type (Fmt_Copy);
                   
                when '_'        =>
-                  Digit_Groups := Ada_Style;
+                  Digit_Groups := Ada_Grouping_Style;
                   
                when '''        =>
-                  Digit_Groups := NLS_Style;
+                  Digit_Groups := NLS_Grouping_Style;
                   
                when '#'        =>
-                  Force_Base := True;
+                  Base_Style := C_Base_Style;
+                  
+               when '~'        =>
+                  Base_Style := Ada_Base_Style;
                   
                when '-' | '*'  =>
                   if Justification_Changed or else Digit_Occured then

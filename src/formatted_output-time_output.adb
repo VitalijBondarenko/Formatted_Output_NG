@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016 Vitalij Bondarenko <vibondare@gmail.com>              --
+-- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -62,6 +62,10 @@ package body Formatted_Output.Time_Output is
    -----------------------
    -- Local Subprograms --
    -----------------------
+
+   function Format
+     (Picture : String;
+      Date    : Ada.Calendar.Time) return String;
 
    function Am_Pm (H : Natural) return String;
    --  Return AM or PM depending on the hour H or empty string if not defined

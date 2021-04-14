@@ -70,7 +70,8 @@ Flag characters can be:
        (The default is right justification.)
    +   A sign (+ or -) should always be placed before a number produced by a
        signed conversion. By default, a sign is used only for negative numbers.
-   #   Used with o, x or X specifiers the value is use with Base.
+   #   Used with o, x or X specifiers the value is use with Base in C style.
+   ~   As above, but using Ada style based <base>#<number>#
    0   The value should be zero padded.
    _   The output is to be grouped with grouping character '_'.
        Group size is 3 for Base = 10 and 4 for other.
@@ -109,7 +110,6 @@ Flag characters can be:
        (The default is right justification.)
    +   A sign (+ or -) should always be placed before a number produced by a
        signed conversion. By default, a sign is used only for negative numbers.
-   #   Used with o, x or X specifiers the value is use with Base.
    0   The value should be zero padded.
    _   The output is to be grouped with grouping character '_'. Group size is 3.
    '   The output is to be grouped with thousands' grouping characters if the

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016 Vitalij Bondarenko <vibondare@gmail.com>              --
+-- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -34,10 +34,16 @@ with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 
 package body Formatted_Output.Enumeration_Output is
 
-   package Item_Type_IO is new Enumeration_IO (Item_Type);
+   package Item_Type_IO is new Ada.Text_IO.Enumeration_IO (Item_Type);
    use Item_Type_IO;
 
    type Style_Type is (Capitalized, Upper_Case, Lower_Case);
+
+   function Format
+     (Value         : Item_Type;
+      Initial_Width : Integer;
+      Justification : Alignment;
+      Style         : Style_Type) return String;
 
    ------------
    -- Format --
@@ -56,12 +62,12 @@ package body Formatted_Output.Enumeration_Output is
    begin
       case Style is
          when Capitalized =>
-            Put (Img, Value, Set => Type_Set'(Lower_Case));
+            Put (Img, Value, Type_Set'(Lower_Case));
             Img (1) := To_Upper (Img (1));
          when Lower_Case  =>
-            Put (Img, Value, Set => Type_Set'(Lower_Case));
+            Put (Img, Value, Type_Set'(Lower_Case));
          when Upper_Case  =>
-            Put (Img, Value, Set => Type_Set'(Upper_Case));
+            Put (Img, Value, Type_Set'(Upper_Case));
       end case;
 
       while Img (Past_Last) /= ' ' loop
