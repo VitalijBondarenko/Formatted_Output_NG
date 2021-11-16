@@ -533,7 +533,17 @@ package body Formatted_Output.Time_Output is
 
                   --  Alphabetic time zone abbreviation
                when 'Z' =>
-                  Result := Result & "";
+                  declare
+                     TZ   : constant Integer :=
+                       Integer (UTC_Time_Offset (Date));
+                     TZH  : constant String :=
+                       Image (abs (TZ / 60), Zero, 2);
+                     TZM  : constant String :=
+                       Image (abs (TZ mod 60), Zero, 2);
+                     Sing : constant String := (if TZ < 0 then "-" else "+");
+                  begin
+                     Result := Result & "UTC" & Sing & TZH & ":" & TZM;
+                  end;
 
                   --  Day of year (001..366)
                when 'j' =>

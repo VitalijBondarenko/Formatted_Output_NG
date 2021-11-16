@@ -90,7 +90,7 @@ package Formatted_Output.Time_Output is
    --     %y   last two digits of year (00..99)
    --     %Y   year (1970...)
    --     %z   +hhmm numeric time zone (e.g., -0400)
-   --     %Z   alphabetic time zone abbreviation (e.g., EDT)
+   --     %Z   alphanumeric time zone (e.g., UTC+02:00)
    --
    --  By default, date pads numeric fields with zeroes. GNU date recognizes
    --  the following optional numeric modifiers:

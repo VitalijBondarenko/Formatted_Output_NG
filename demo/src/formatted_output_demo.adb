@@ -20,6 +20,13 @@ with L10n; use L10n;
 
 procedure Formatted_Output_Demo is
 
+   procedure Show_Integer_Ranges;
+   procedure Show_Float_Ranges;
+
+   -------------------------
+   -- Show_Integer_Ranges --
+   -------------------------
+
    procedure Show_Integer_Ranges is
    begin
       Put_Line
@@ -44,6 +51,10 @@ procedure Formatted_Output_Demo is
         (+"Positive type range:\n\t%+_30d .. %-+_30d"
          & Positive'First & Positive'Last);
    end Show_Integer_Ranges;
+
+   -----------------------
+   -- Show_Float_Ranges --
+   -----------------------
 
    procedure Show_Float_Ranges is
    begin
