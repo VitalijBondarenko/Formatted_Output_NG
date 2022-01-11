@@ -322,7 +322,7 @@ package body Formatted_Output.Time_Output is
 
       while P <= Picture'Last loop
 
-         --  A directive has the following format "%[-_]."
+         --  A directive has the following format "%[-_0]."
          if Picture (P) = '%' then
             Padding := Zero;
 
@@ -330,18 +330,24 @@ package body Formatted_Output.Time_Output is
                raise Time_Picture_Error with "picture string ends with '%";
             end if;
 
-            --  Check for GNU extension to change the padding
-            if Picture (P + 1) = '-' then
-               Padding := None;
-               P := P + 1;
-            elsif Picture (P + 1) = '_' then
-               Padding := Space;
-               P := P + 1;
-            end if;
+            --  Check for change the padding
+            case Picture (P + 1) is
+               when '-' =>
+                  Padding := None;
+                  P := P + 1;
+               when '_' =>
+                  Padding := Space;
+                  P := P + 1;
+               when '0' =>
+                  Padding := Zero;
+                  P := P + 1;
+               when others =>
+                  null;
+            end case;
 
             if P = Picture'Last then
                raise Time_Picture_Error
-                 with "picture string ends with '- or '_";
+                 with "picture string ends with '-', '_' or '0'";
             end if;
 
             case Picture (P + 1) is
@@ -401,7 +407,7 @@ package body Formatted_Output.Time_Output is
                when 'R' =>
                   Result := Result & Format ("%H:%M", Date);
 
-                  --   Seconds since 1970-01-01  00:00:00 UTC
+                  --   Seconds since 1970-01-01 00:00:00 UTC
                   --   (a nonstandard extension)
                when 's' =>
                   declare
@@ -433,33 +439,28 @@ package body Formatted_Output.Time_Output is
                when 'S' =>
                   Result := Result & Image (Second, Padding, 2);
 
-               --  Milliseconds (3 digits)
-               --  Microseconds (6 digits)
-               --  Nanoseconds  (9 digits)
+               --  i  Milliseconds (3 digits)
+               --  o  Microseconds (6 digits)
+               --  N  Nanoseconds  (9 digits)
                when 'i' | 'o' | 'N' =>
                   declare
                      Sub_Sec : constant Long_Integer :=
-                                 Long_Integer (Sub_Second * 1_000_000_000);
-
-                     Img1  : constant String := Sub_Sec'Img;
-                     Img2  : constant String :=
-                               "00000000" & Img1 (Img1'First + 1 .. Img1'Last);
-                     Nanos : constant String :=
-                               Img2 (Img2'Last - 8 .. Img2'Last);
-
+                       Long_Integer (Sub_Second * 1_000_000_000);
+                     Img1    : constant String := Sub_Sec'Img;
+                     Img2    : constant String :=
+                       "00000000" & Img1 (Img1'First + 1 .. Img1'Last);
+                     Nanos   : constant String :=
+                       Img2 (Img2'Last - 8 .. Img2'Last);
                   begin
                      case Picture (P + 1) is
                         when 'i' =>
                            Result := Result &
                              Nanos (Nanos'First .. Nanos'First + 2);
-
                         when 'o' =>
                            Result := Result &
                              Nanos (Nanos'First .. Nanos'First + 5);
-
                         when 'N' =>
                            Result := Result & Nanos;
-
                         when others =>
                            null;
                      end case;
@@ -517,8 +518,9 @@ package body Formatted_Output.Time_Output is
                when 'X' =>
                   Result := Result & Format (Nl_Langinfo (T_FMT), Date);
 
-                  --  Numeric timezone
-               when 'z' =>
+                  --  z  Numeric timezone
+                  --  Z  Alphabetic time zone abbreviation
+               when 'z' | 'Z' =>
                   declare
                      TZ   : constant Integer :=
                        Integer (UTC_Time_Offset (Date));
@@ -528,21 +530,14 @@ package body Formatted_Output.Time_Output is
                        Image (abs (TZ mod 60), Zero, 2);
                      Sing : constant String := (if TZ < 0 then "-" else "+");
                   begin
-                     Result := Result & Sing & TZH & TZM;
-                  end;
-
-                  --  Alphabetic time zone abbreviation
-               when 'Z' =>
-                  declare
-                     TZ   : constant Integer :=
-                       Integer (UTC_Time_Offset (Date));
-                     TZH  : constant String :=
-                       Image (abs (TZ / 60), Zero, 2);
-                     TZM  : constant String :=
-                       Image (abs (TZ mod 60), Zero, 2);
-                     Sing : constant String := (if TZ < 0 then "-" else "+");
-                  begin
-                     Result := Result & "UTC" & Sing & TZH & ":" & TZM;
+                     case Picture (P + 1) is
+                        when 'z' =>
+                           Result := Result & Sing & TZH & TZM;
+                        when 'Z' =>
+                           Result := Result & "UTC" & Sing & TZH & ":" & TZM;
+                        when others =>
+                           null;
+                     end case;
                   end;
 
                   --  Day of year (001..366)
