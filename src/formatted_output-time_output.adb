@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -54,14 +54,18 @@ package body Formatted_Output.Time_Output is
      (MON_1, MON_2, MON_3, MON_4, MON_5, MON_6,
       MON_7, MON_8, MON_9, MON_10, MON_11, MON_12);
 
+   Alt_Month_Full_Names : constant array (Month_Number) of Locale_Item :=
+     (ALTMON_1, ALTMON_2, ALTMON_3, ALTMON_4, ALTMON_5, ALTMON_6,
+      ALTMON_7, ALTMON_8, ALTMON_9, ALTMON_10, ALTMON_11, ALTMON_12);
+
    type Padding_Mode is (None, Zero, Space);
 
    type Sec_Number is mod 2 ** 64;
    --  Type used to compute the number of seconds since 1970-01-01.
 
-   -----------------------
-   -- Local Subprograms --
-   -----------------------
+   ---------------------------------------------------------------------------
+   -- Local Subprograms
+   ---------------------------------------------------------------------------
 
    function Format
      (Picture : String;
@@ -112,6 +116,9 @@ package body Formatted_Output.Time_Output is
 
    function Mon_Full_Name (Month : Month_Number) return String;
    function Mon_Full_Name (Date : Time) return String;
+   --  Returns locale's full month name.
+
+   function Alt_Mon_Full_Name (Month : Month_Number) return String;
    --  Returns locale's full month name.
 
    -----------
@@ -174,6 +181,10 @@ package body Formatted_Output.Time_Output is
       return Image (Sec_Number (N), Padding, Length);
    end Image;
 
+   -----------
+   -- Image --
+   -----------
+
    function Image
      (N       : Sec_Number;
       Padding : Padding_Mode := Zero;
@@ -219,12 +230,15 @@ package body Formatted_Output.Time_Output is
         ID + (153 * M + 2) / 5 + 365 * Y + Y / 4 - Y / 100 + Y / 400 - 32045;
    end Julian_Day;
 
+   ----------------
+   -- Julian_Day --
+   ----------------
+
    function Julian_Day (Date : Time) return Integer is
       Year  : Year_Number;
       Month : Month_Number;
       Day   : Day_Number;
       Sec   : Day_Duration;
-      pragma Unreferenced (Sec);
    begin
       Split (Date, Year, Month, Day, Sec);
       return Julian_Day (Year, Month, Day);
@@ -257,12 +271,15 @@ package body Formatted_Output.Time_Output is
       return Nl_Langinfo (Month_Abbr_Names (Month));
    end Mon_Abbr_Name;
 
+   -------------------
+   -- Mon_Abbr_Name --
+   -------------------
+
    function Mon_Abbr_Name (Date : Time) return String is
       Year  : Year_Number;
       Month : Month_Number;
       Day   : Day_Number;
       Sec   : Day_Duration;
-      pragma Unreferenced (Year, Day, Sec);
    begin
       Split (Date, Year, Month, Day, Sec);
       return Mon_Abbr_Name (Month);
@@ -277,16 +294,33 @@ package body Formatted_Output.Time_Output is
       return Nl_Langinfo (Month_Full_Names (Month));
    end Mon_Full_Name;
 
+   -------------------
+   -- Mon_Full_Name --
+   -------------------
+
    function Mon_Full_Name (Date : Time) return String is
       Year  : Year_Number;
       Month : Month_Number;
       Day   : Day_Number;
       Sec   : Day_Duration;
-      pragma Unreferenced (Year, Day, Sec);
    begin
       Split (Date, Year, Month, Day, Sec);
       return Mon_Full_Name (Month);
    end Mon_Full_Name;
+
+   -----------------------
+   -- Alt_Mon_Full_Name --
+   -----------------------
+
+   function Alt_Mon_Full_Name (Month : Month_Number) return String is
+      R : String := Nl_Langinfo (Alt_Month_Full_Names (Month));
+   begin
+      if R'Length = 0 then
+         return Nl_Langinfo (Month_Full_Names (Month));
+      else
+         return R;
+      end if;
+   end Alt_Mon_Full_Name;
 
    ------------
    -- Format --
@@ -296,20 +330,23 @@ package body Formatted_Output.Time_Output is
      (Picture : String;
       Date    : Ada.Calendar.Time) return String
    is
-      Padding    : Padding_Mode := Zero;
+      Padding        : Padding_Mode := Zero;
       --  Padding is set for one directive
-      Result     : Unbounded_String;
-      Year       : Year_Number;
-      Month      : Month_Number;
-      Day        : Day_Number;
-      Hour       : Hour_Number;
-      Minute     : Minute_Number;
-      Second     : Second_Number;
-      Sub_Second : Second_Duration;
-      P          : Positive;
+      Result         : Unbounded_String;
+      Year           : Year_Number;
+      Month          : Month_Number;
+      Day            : Day_Number;
+      Hour           : Hour_Number;
+      Minute         : Minute_Number;
+      Second         : Second_Number;
+      Sub_Second     : Second_Duration;
+      TZ             : Integer;
+      P              : Positive;
+      Use_O_Modifier : Boolean := False;
    begin
       --  Get current time in split format
       Split (Date, Year, Month, Day, Hour, Minute, Second, Sub_Second);
+      TZ := Integer (UTC_Time_Offset (Date));
 
       --  Null picture string is error
       if Picture = "" then
@@ -330,7 +367,7 @@ package body Formatted_Output.Time_Output is
                raise Time_Picture_Error with "picture string ends with '%";
             end if;
 
-            --  Check for change the padding
+            --  Check for the padding, 'O' modifier
             case Picture (P + 1) is
                when '-' =>
                   Padding := None;
@@ -340,6 +377,9 @@ package body Formatted_Output.Time_Output is
                   P := P + 1;
                when '0' =>
                   Padding := Zero;
+                  P := P + 1;
+               when 'O' =>
+                  Use_O_Modifier := True;
                   P := P + 1;
                when others =>
                   null;
@@ -364,23 +404,87 @@ package body Formatted_Output.Time_Output is
                when 't' =>
                   Result := Result & ASCII.HT;
 
-                  --  Hour (00..23)
+                  ------------------------------------------------------------
+                  --  Date & time fields
+                  ------------------------------------------------------------
+
+                  --  Locale's abbreviated weekday name (Sun .. Sat)
+               when 'a' =>
+                  Result := Result & Day_Abbr_Name (Date);
+
+                  --  Locale's full weekday name, variable length
+                  --  (Sunday .. Saturday)
+               when 'A' =>
+                  Result := Result & Day_Full_Name (Date);
+
+                  --  Locale's abbreviated month name (Jan .. Dec)
+               when 'b' | 'h' =>
+                  Result := Result & Mon_Abbr_Name (Month);
+
+                  --  Locale's full month name, variable length
+                  --  (January .. December).
+               when 'B' =>
+                  if Use_O_Modifier then
+                     Result := Result & Alt_Mon_Full_Name (Month);
+                  else
+                     Result := Result & Mon_Full_Name (Month);
+                  end if;
+
+                  --  Locale's date and time (Sat Nov 04 12:02:33 EST 1989)
+               when 'c' =>
+                  Result := Result & Format (Nl_Langinfo (D_T_FMT), Date);
+
+                  --  Century
+               when 'C' =>
+                  Result := Result & Image (Year / 100, None);
+
+                  --  Day of month (01 .. 31)
+               when 'd' =>
+                  Result := Result & Image (Day, Padding, 2);
+
+                  --  Date (mm/dd/yy)
+               when 'D' =>
+                  Result := Result &
+                    Image (Month, Padding, 2) & '/' &
+                    Image (Day, Padding, 2) & '/' &
+                    Image (Year, Padding, 2);
+
+                  --  Day of month ( 1..31)
+               when 'e' =>
+                  Result := Result & Image (Day, Space, 2);
+
+                  --  Date (yyyy-mm-dd)
+               when 'F' =>
+                  Result := Result &
+                    Image (Year, None, 4) & '-' &
+                    Image (Month, Padding, 2) & '-' &
+                    Image (Day, Padding, 2);
+
+                  --  Hour (00 .. 23)
                when 'H' =>
                   Result := Result & Image (Hour, Padding, 2);
 
-                  --  Hour (01..12)
+                  --  Hour (01 .. 12)
                when 'I' =>
                   Result := Result & Image (Hour_12 (Hour), Padding, 2);
 
-                  --  Hour ( 0..23)
+                  --  Day of year (001 .. 366)
+               when 'j' =>
+                  Result := Result & Image (Day_In_Year (Date), Padding, 3);
+
+                  --  Hour ( 0 .. 23)
                when 'k' =>
                   Result := Result & Image (Hour, Space, 2);
 
-                  --  Hour ( 1..12)
+                  --  Hour ( 1 .. 12)
                when 'l' =>
                   Result := Result & Image (Hour_12 (Hour), Space, 2);
 
-                  --  Minute (00..59)
+                  --  Month (01 .. 12)
+               when 'm' =>
+                  Result := Result & Image (Month, Padding, 2);
+
+                  --  Minute (00 .. 59)
                when 'M' =>
                   Result := Result & Image (Minute, Padding, 2);
 
@@ -400,15 +504,20 @@ package body Formatted_Output.Time_Output is
                        Format (Nl_Langinfo (T_FMT_AMPM), Date);
                   exception
                      when others =>
-                        Result := Result & Format ("%I:%M:%S", Date);
+                        Result := Result &
+                          Image (Hour_12 (Hour), Padding, 2) & ":" &
+                          Image (Minute, Padding, 2) & ":" &
+                          Image (Second, Padding, 2);
                   end;
 
                   --  Time, 24-hour (hh:mm)
                when 'R' =>
-                  Result := Result & Format ("%H:%M", Date);
+                  Result := Result &
+                    Image (Hour, Padding, 2) & ":" &
+                    Image (Minute, Padding, 2);
 
-                  --   Seconds since 1970-01-01 00:00:00 UTC
-                  --   (a nonstandard extension)
+                  --  Seconds since 1970-01-01 00:00:00 UTC
+                  --  (a GNU extension)
                when 's' =>
                   declare
                      --  Compute the number of seconds using Ada.Calendar.Time
@@ -428,20 +537,105 @@ package body Formatted_Output.Time_Output is
 
                      --  Prepend a minus sign to the result since Sec_Number
                      --  cannot handle negative numbers.
-                     if Neg then
-                        Result := Result & "-" & Image (Sec_Number (Sec), None);
-                     else
-                        Result := Result & Image (Sec_Number (Sec), None);
-                     end if;
+                     Result := Result
+                       & (if Neg then "-" else "")
+                       & Image (Sec_Number (Sec), None);
                   end;
 
-                  --  Second (00..59)
+                  --  Second (00 .. 59)
                when 'S' =>
                   Result := Result & Image (Second, Padding, 2);
 
-               --  i  Milliseconds (3 digits)
-               --  o  Microseconds (6 digits)
-               --  N  Nanoseconds  (9 digits)
+                  --  Time, 24-hour (hh:mm:ss)
+               when 'T' =>
+                  Result := Result &
+                    Image (Hour, Padding, 2) & ':' &
+                    Image (Minute, Padding, 2) & ':' &
+                    Image (Second, Padding, 2);
+
+                  --  Day of week (1 .. 7) with 1 corresponding to Monday
+               when 'u' =>
+                  declare
+                     DOW : constant Natural range 1 .. 7 :=
+                       Day_Name'Pos (Day_Of_Week (Date)) + 1;
+                  begin
+                     Result := Result & Image (DOW, Length => 1);
+                  end;
+
+                  --  Week number of year with Sunday as first day of week
+                  --  (00 .. 53)
+               when 'U' =>
+                  declare
+                     Offset : constant Natural :=
+                       (Julian_Day (Year, 1, 1) + 1) mod 7;
+                     Week   : constant Natural :=
+                       1 + ((Day_In_Year (Date) - 1) + Offset) / 7;
+                  begin
+                     Result := Result & Image (Week, Padding, 2);
+                  end;
+
+                  --  Day of week (0 .. 6) with 0 corresponding to Sunday
+               when 'w' =>
+                  declare
+                     DOW : constant Natural range 0 .. 6 :=
+                       (if Day_Of_Week (Date) = Sunday then 0
+                        else Day_Name'Pos (Day_Of_Week (Date)) + 1);
+                  begin
+                     Result := Result & Image (DOW, Length => 1);
+                  end;
+
+                  --  Week number of year with Monday as first day of week
+                  --  (00 .. 53)
+               when 'W' =>
+                  Result := Result & Image (Week_In_Year (Date), Padding, 2);
+
+                  --  Locale's date
+               when 'x' =>
+                  Result := Result & Format (Nl_Langinfo (D_FMT), Date);
+
+                  --  Locale's time
+               when 'X' =>
+                  Result := Result & Format (Nl_Langinfo (T_FMT), Date);
+
+                  --  Last two digits of year (00 .. 99)
+               when 'y' =>
+                  declare
+                     Y : constant Natural := Year - (Year / 100) * 100;
+                  begin
+                     Result := Result & Image (Y, Padding, 2);
+                  end;
+
+                  --  Year (1970...)
+               when 'Y' =>
+                  Result := Result & Image (Year, None, 4);
+
+                  --  z  Numeric timezone
+                  --  Z  Alphabetic time zone abbreviation
+               when 'z' | 'Z' =>
+                  declare
+                     TZH  : constant String :=
+                       Image (abs (TZ / 60), Zero, 2);
+                     TZM  : constant String :=
+                       Image (abs (TZ mod 60), Zero, 2);
+                     Sing : constant String := (if TZ < 0 then "-" else "+");
+                  begin
+                     case Picture (P + 1) is
+                        when 'z' =>
+                           Result := Result & Sing & TZH & TZM;
+                        when 'Z' =>
+                           Result := Result & "UTC" & Sing & TZH & ":" & TZM;
+                        when others =>
+                           null;
+                     end case;
+                  end;
+
+                  ------------------------------------------------------------
+                  --  Additional time fields
+                  ------------------------------------------------------------
+
+                  --  i  Milliseconds (3 digits)
+                  --  o  Microseconds (6 digits)
+                  --  N  Nanoseconds  (9 digits)
                when 'i' | 'o' | 'N' =>
                   declare
                      Sub_Sec : constant Long_Integer :=
@@ -466,140 +660,7 @@ package body Formatted_Output.Time_Output is
                      end case;
                   end;
 
-                  --  Time, 24-hour (hh:mm:ss)
-               when 'T' =>
-                  Result := Result &
-                    Image (Hour, Padding, 2) & ':' &
-                    Image (Minute, Padding, 2) & ':' &
-                    Image (Second, Padding, 2);
-
-                  --  Locale's abbreviated weekday name (Sun..Sat)
-               when 'a' =>
-                  Result := Result & Day_Abbr_Name (Date);
-
-                  --  Locale's full weekday name, variable length
-                  --  (Sunday..Saturday)
-               when 'A' =>
-                  Result := Result & Day_Full_Name (Date);
-
-                  --  Locale's abbreviated month name (Jan..Dec)
-               when 'b' | 'h' =>
-                  Result := Result & Mon_Abbr_Name (Month);
-
-                  --  Locale's full month name, variable length
-                  --  (January..December).
-               when 'B' =>
-                  Result := Result & Mon_Full_Name (Month);
-
-                  --  Locale's date and time (Sat Nov 04 12:02:33 EST 1989)
-               when 'c' =>
-                  Result := Result & Format (Nl_Langinfo (D_T_FMT), Date);
-
-                  --   Day of month (01..31)
-               when 'd' =>
-                  Result := Result & Image (Day, Padding, 2);
-
-                  --   Day of month ( 1..31)
-               when 'e' =>
-                  Result := Result & Image (Day, Space, 2);
-
-                  --  Date (mm/dd/yy)
-               when 'D' =>
-                  Result := Result &
-                    Image (Month, Padding, 2) & '/' &
-                    Image (Day, Padding, 2) & '/' &
-                    Image (Year, Padding, 2);
-
-                  --  Locale's date
-               when 'x' =>
-                  Result := Result & Format (Nl_Langinfo (D_FMT), Date);
-
-                  --  Locale's time
-               when 'X' =>
-                  Result := Result & Format (Nl_Langinfo (T_FMT), Date);
-
-                  --  z  Numeric timezone
-                  --  Z  Alphabetic time zone abbreviation
-               when 'z' | 'Z' =>
-                  declare
-                     TZ   : constant Integer :=
-                       Integer (UTC_Time_Offset (Date));
-                     TZH  : constant String :=
-                       Image (abs (TZ / 60), Zero, 2);
-                     TZM  : constant String :=
-                       Image (abs (TZ mod 60), Zero, 2);
-                     Sing : constant String := (if TZ < 0 then "-" else "+");
-                  begin
-                     case Picture (P + 1) is
-                        when 'z' =>
-                           Result := Result & Sing & TZH & TZM;
-                        when 'Z' =>
-                           Result := Result & "UTC" & Sing & TZH & ":" & TZM;
-                        when others =>
-                           null;
-                     end case;
-                  end;
-
-                  --  Day of year (001..366)
-               when 'j' =>
-                  Result := Result & Image (Day_In_Year (Date), Padding, 3);
-
-                  --  Month (01..12)
-               when 'm' =>
-                  Result := Result & Image (Month, Padding, 2);
-
-                  --  Day of week (1..7) with 1 corresponding to Monday
-               when 'u' =>
-                  declare
-                     DOW : constant Natural range 1 .. 7 :=
-                       Day_Name'Pos (Day_Of_Week (Date)) + 1;
-                  begin
-                     Result := Result & Image (DOW, Length => 1);
-                  end;
-
-                  --  Week number of year with Sunday as first day of week
-                  --  (00..53)
-               when 'U' =>
-                  declare
-                     Offset : constant Natural :=
-                       (Julian_Day (Year, 1, 1) + 1) mod 7;
-                     Week   : constant Natural :=
-                       1 + ((Day_In_Year (Date) - 1) + Offset) / 7;
-                  begin
-                     Result := Result & Image (Week, Padding, 2);
-                  end;
-
-                  --  Day of week (0..6) with 0 corresponding to Sunday
-               when 'w' =>
-                  declare
-                     DOW : constant Natural range 0 .. 6 :=
-                       (if Day_Of_Week (Date) = Sunday then 0
-                        else Day_Name'Pos (Day_Of_Week (Date)) + 1);
-                  begin
-                     Result := Result & Image (DOW, Length => 1);
-                  end;
-
-                  --  Week number of year with Monday as first day of week
-                  --  (00..53)
-               when 'W' =>
-                  Result := Result & Image (Week_In_Year (Date), Padding, 2);
-
-                  --  Last two digits of year (00..99)
-               when 'y' =>
-                  declare
-                     Y : constant Natural := Year - (Year / 100) * 100;
-                  begin
-                     Result := Result & Image (Y, Padding, 2);
-                  end;
-
-                  --   Year (1970...)
-               when 'Y' =>
-                  Result := Result & Image (Year, None, 4);
-
-                  --   Century
-               when 'C' =>
-                  Result := Result & Image (Year / 100, None);
-
+                  --  Unknown character
                when others =>
                   raise Time_Picture_Error
                     with "unknown format character in picture string";
@@ -608,6 +669,9 @@ package body Formatted_Output.Time_Output is
 
             --  Skip past % and format character
             P := P + 2;
+
+            --  Reset modifier flag
+            Use_O_Modifier := False;
 
             --  Character other than % is copied into the result
          else

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -31,18 +31,27 @@ with Ada.Strings;             use Ada.Strings;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Interfaces;
+with Ada.Unchecked_Conversion;
+with Interfaces;              use Interfaces;
 
 package body Formatted_Output.Integer_Output is
 
    package Item_Type_IO is new Ada.Text_IO.Integer_IO (Item_Type);
    use Item_Type_IO;
 
-   package Unsigned_8_IO is new Ada.Text_IO.Modular_IO (Interfaces.Unsigned_8);
-   package Unsigned_16_IO is new Ada.Text_IO.Modular_IO (Interfaces.Unsigned_16);
-   package Unsigned_32_IO is new Ada.Text_IO.Modular_IO (Interfaces.Unsigned_32);
-   package Unsigned_64_IO is new Ada.Text_IO.Modular_IO (Interfaces.Unsigned_64);
+   type Neg_Number_Represent is (Sign_Magnitude, Twos_Complement);
 
+   subtype Base_Type is Integer range 2 .. 64;
+
+   generic
+      type Int is range <>;
+      type Uns is mod <>;
+   procedure Int_To_Str
+     (To        : out String;
+      Value     : Int;
+      Base      : Base_Type;
+      Neg_Style : Neg_Number_Represent);
+   
    function Separate_Integer_Digit_Groups
      (Text_Value : String;
       Separator  : String;
@@ -58,6 +67,77 @@ package body Formatted_Output.Integer_Output is
       Base_Style    : Base_Style_Kind;
       Digit_Groups  : Digit_Grouping) return String;
    
+   ----------------
+   -- Int_To_Str --
+   ----------------
+   
+   procedure Int_To_Str
+     (To        : out String;
+      Value     : Int;
+      Base      : Base_Type;
+      Neg_Style : Neg_Number_Represent)
+   is
+      function To_Unsigned is new Ada.Unchecked_Conversion (Int, Uns);
+   
+      Digit_Symbols : constant String := "0123456789ABCDEF";
+      Result        : String (1 .. 255) := (others => ' ');
+      Index         : Natural := Result'Last;
+      Divider       : Int := 0;
+      Quotient      : Int := 0;
+      Remainder     : Int := 0;
+      Uns_Q         : Uns := 0;
+      Uns_D         : Uns := 0;
+      Uns_R         : Uns := 0;
+   begin
+      if Value = 0 then
+         Result (Index) := '0';
+   
+      elsif Value > 0 then
+         Quotient := Value;
+         Divider := Int (Base);
+   
+         while Quotient /= 0 loop
+            Remainder := Quotient mod Divider;
+            Quotient := Quotient / Divider;
+            Result (Index) := Digit_Symbols (Natural (Remainder) + 1);
+            Index := Index - 1;
+         end loop;
+   
+         Index := Index + 1;
+   
+      else
+         case Neg_Style is
+            when Sign_Magnitude  =>
+               Uns_Q := To_Unsigned (abs (Value + 1)) + 1;
+            when Twos_Complement =>
+               Uns_Q := To_Unsigned (Value);
+         end case;
+   
+         Uns_D := To_Unsigned (Int (Base));
+   
+         while Uns_Q /= 0 loop
+            Uns_R := Uns_Q mod Uns_D;
+            Uns_Q := Uns_Q / Uns_D;
+            Result (Index) := Digit_Symbols (Natural (Uns_R) + 1);
+            Index := Index - 1;
+         end loop;
+   
+         if Neg_Style = Sign_Magnitude then
+            Result (Index) := '-';
+         else
+            Index := Index + 1;
+         end if;
+      end if;
+   
+      if Result'Last - Index + 1 > To'Length then
+         raise Layout_Error;
+      else
+         To (To'First .. To'Last - (Result'Length - Index)) := (others => ' ');
+         To (To'Last - (Result'Length - Index) .. To'Last) :=
+           Result (Index .. Result'Last);
+      end if;
+   end Int_To_Str;
+
    -----------------------------------
    -- Separate_Integer_Digit_Groups --
    -----------------------------------
@@ -97,6 +177,12 @@ package body Formatted_Output.Integer_Output is
    -- Format --
    ------------
 
+   procedure Int8_To_Str is new Int_To_Str (Short_Short_Integer, Unsigned_8);
+   procedure Int16_To_Str is new Int_To_Str (Short_Integer, Unsigned_16);
+   procedure Int32_To_Str is new Int_To_Str (Integer, Unsigned_32);
+   procedure Int64_To_Str is new Int_To_Str (Long_Integer, Unsigned_64);
+   procedure Int64_To_Str is new Int_To_Str (Long_Long_Integer, Unsigned_64);
+
    function Format
      (Value         : Item_Type;
       Initial_Width : Integer;
@@ -112,48 +198,37 @@ package body Formatted_Output.Integer_Output is
       Real_Width : Integer;
       Pre_First  : Natural;
       Last       : Natural;
+      Neg_Num    : Neg_Number_Represent;
       use Interfaces;
    begin
-      if Value < 0 and Base /= 10 then
-         case Value'Size is
-            when 1 .. 8   =>
-               Unsigned_8_IO.Put
-                 (Img, 2 ** Value'Size - Unsigned_8 (abs (Value)), Base);
-            when 9 .. 16  =>
-               Unsigned_16_IO.Put
-                 (Img, 2 ** Value'Size - Unsigned_16 (abs (Value)), Base);
-            when 17 .. 32 =>
-               Unsigned_32_IO.Put
-                 (Img, 2 ** Value'Size - Unsigned_32 (abs (Value)), Base);
-            when 33 .. 64 =>
-               Unsigned_64_IO.Put
-                 (Img, 2 ** Value'Size - Unsigned_64 (abs (Value)), Base);
-            when others   =>
-               null;
-         end case;
+      if Base_Style = C_Base_Style then
+         Neg_Num := Twos_Complement;
       else
-         Put (Img, Value, Base);
+         Neg_Num := Sign_Magnitude;
       end if;
       
-      Last := Maximal_Item_Length;
+      if Item_Type'Base'Size > Long_Integer'Size then
+         Int64_To_Str (Img, Long_Long_Integer (Value), Base, Neg_Num);
+      elsif Item_Type'Base'Size > Integer'Size then
+         Int64_To_Str (Img, Long_Integer (Value), Base, Neg_Num);
+      elsif Item_Type'Base'Size > Short_Integer'Size then
+         Int32_To_Str (Img, Integer (Value), Base, Neg_Num);
+      elsif Item_Type'Base'Size > Short_Short_Integer'Size then
+         Int16_To_Str (Img, Short_Integer (Value), Base, Neg_Num);
+      else
+         Int8_To_Str (Img, Short_Short_Integer (Value), Base, Neg_Num);
+      end if;
+      
+      Last := Img'Last;
       Pre_First := Last;
-
-      if Base /= 10 then
-         Last := Maximal_Item_Length - 1;
-         Pre_First := Last;
-         
-         while Img (Pre_First) /= ' ' and then Img (Pre_First) /= '#' loop
-            Pre_First := Pre_First - 1;
-         end loop;
-      else
-         while Img (Pre_First) /= ' ' loop
-            Pre_First := Pre_First - 1;
-         end loop;
-      end if;
-      
-      if Value > 0 and then Force_Sign and then Base = 10 then
-         Img (Pre_First) := '+';
+   
+      while Img (Pre_First) /= ' ' loop
          Pre_First := Pre_First - 1;
+      end loop;
+      
+      if Value < 0 and then Img (Pre_First + 1) = '-' then
+         Pre_First := Pre_First + 1;
+         Img (Pre_First) := ' ';
       end if;
       
       Real_Width := Last - Pre_First;
@@ -163,7 +238,7 @@ package body Formatted_Output.Integer_Output is
       else
          Width := Initial_Width;
       end if;
-
+      
       declare
          S : String (1 .. Width);
          V : String := Img (Pre_First + 1 .. Last);
@@ -176,7 +251,7 @@ package body Formatted_Output.Integer_Output is
            (if Digit_Groups = NLS_Grouping_Style or Base = 10 then 3 else 4);
       begin
          case Digit_Groups is
-            when None      =>
+            when None               =>
                T := To_Unbounded_String (V);
             when Ada_Grouping_Style =>
                T := To_Unbounded_String
@@ -192,7 +267,9 @@ package body Formatted_Output.Integer_Output is
 
          case Base_Style is
             when None           =>
-               null;
+               if Value < 0 and Base = 10 then
+                  T := "-" & T;
+               end if;
             when C_Base_Style   =>
                case Base is
                   when 8      => T := "0" & T;
@@ -206,6 +283,10 @@ package body Formatted_Output.Integer_Output is
                   when 16     => T := "16#" & T & "#";
                   when others => null;
                end case;
+               
+               if Value < 0 and Base /= 10 then
+                  T := "-" & T;
+               end if;
          end case;
 
          if Length (T) > Width then
@@ -267,11 +348,9 @@ package body Formatted_Output.Integer_Output is
                when 'X'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     To_Upper
-                       (Format
-                            (Value, Width, Leading_Zero, 16,
-                             Justification, Force_Sign, Base_Style,
-                             Digit_Groups)));
+                     To_Upper (Format
+                       (Value, Width, Leading_Zero, 16, Justification,
+                            Force_Sign, Base_Style, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
                   
                when 'o'        =>

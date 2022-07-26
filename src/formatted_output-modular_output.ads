@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -34,6 +34,34 @@ package Formatted_Output.Modular_Output is
    function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type;
    --  Replaces leftmost formatting sequence in Fmt with formatted Value image,
    --  then returns Fmt. Raises exception Format_Error when invalid formatting
-   --  sequence is found or no formatting sequence found at all
+   --  sequence is found or no formatting sequence found at all.
+   --
+   --  Format sequences for modular types:
+   --
+   --  %[flags][<width>](d|x|X|o|b)
+   --
+   --  Flag characters can be:
+   --     -   The converted value is to be left adjusted on the field boundary.
+   --         (The default is right justification.)
+   --     *   The converted value is to be center adjusted on the field boundary.
+   --         (The default is right justification.)
+   --     +   A sign (+ or -) should always be placed before a number produced by a
+   --         signed conversion. By default, a sign is used only for negative numbers.
+   --     #   Used with o, x or X specifiers the value is use with Base in C style.
+   --     ~   As above, but using Ada style based <base>#<number>#
+   --     0   The value should be zero padded.
+   --     _   The output is to be grouped with grouping character '_'.
+   --         Group size is 3 for Base = 10 and 4 for other.
+   --     '   For decimal conversion (d) the output is to be grouped with thousands'
+   --         grouping characters if the locale information indicates any.
+   --
+   --  <width> is decimal number specifying minimum field width.
+   --
+   --  Format specifier can be:
+   --     d   Convert as decimal.
+   --     x   Convert as hexadecimal (lowercase).
+   --     X   Convert as hexadecimal (uppercase).
+   --     o   Convert as octal.
+   --     b   Convert as binary.
 
 end Formatted_Output.Modular_Output;

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -37,7 +37,7 @@ package body Formatted_Output.Enumeration_Output is
    package Item_Type_IO is new Ada.Text_IO.Enumeration_IO (Item_Type);
    use Item_Type_IO;
 
-   type Style_Type is (Capitalized, Upper_Case, Lower_Case);
+   type Style_Type is (Capitalized, Lower_Case, Upper_Case, Mixed);
 
    function Format
      (Value         : Item_Type;
@@ -58,23 +58,34 @@ package body Formatted_Output.Enumeration_Output is
       Img        : String (1 .. Maximal_Item_Length);
       Width      : Integer;
       Real_Width : Integer;
-      Past_Last  : Integer := 1;
+      Past_Last  : Integer := Img'First;
+      Ind        : Natural;
    begin
+      Put (Img, Value, Type_Set'(Lower_Case));
+      Past_Last := Index_Non_Blank (Img, Backward);
+
       case Style is
          when Capitalized =>
-            Put (Img, Value, Type_Set'(Lower_Case));
-            Img (1) := To_Upper (Img (1));
+            Img (Img'First) := To_Upper (Img (Img'First));
          when Lower_Case  =>
-            Put (Img, Value, Type_Set'(Lower_Case));
+            null;
          when Upper_Case  =>
-            Put (Img, Value, Type_Set'(Upper_Case));
+            Img := To_Upper (Img);
+         when Mixed       =>
+            Img (Img'First) := To_Upper (Img (Img'First));
+            Ind := Img'First + 1;
+
+            while Ind < Past_Last loop
+               if Img (Ind) = '_' then
+                  Ind := Ind + 1;
+                  Img (Ind) := To_Upper (Img (Ind));
+               end if;
+
+               Ind := Ind + 1;
+            end loop;
       end case;
 
-      while Img (Past_Last) /= ' ' loop
-         Past_Last := Past_Last + 1;
-      end loop;
-
-      Real_Width := Past_Last - 1;
+      Real_Width := Past_Last;
 
       if Initial_Width < Real_Width then
          Width := Real_Width;
@@ -86,7 +97,7 @@ package body Formatted_Output.Enumeration_Output is
          S : String (1 .. Width);
       begin
          Move
-           (Img (Past_Last - Real_Width .. Past_Last - 1),
+           (Img (Past_Last - Real_Width + 1 .. Past_Last),
             S,
             Justify => Justification,
             Pad     => Filler);
@@ -127,6 +138,12 @@ package body Formatted_Output.Enumeration_Output is
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
                      Format (Value, Width, Justification, Lower_Case));
+                  return Format_Type (Fmt_Copy);
+
+               when 'm'             =>
+                  Replace_Slice
+                    (Fmt_Copy, Command_Start, I,
+                     Format (Value, Width, Justification, Mixed));
                   return Format_Type (Fmt_Copy);
 
                when '-' | '+' | '*' =>

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -31,6 +31,7 @@ with Ada.Integer_Text_IO;  use Ada.Integer_Text_IO;
 with Ada.Float_Text_IO;    use Ada.Float_Text_IO;
 with Ada.Strings;          use Ada.Strings;
 with Ada.Strings.Fixed;    use Ada.Strings.Fixed;
+with Ada.Strings.Maps;     use Ada.Strings.Maps;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
 with L10n.Localeinfo;      use L10n.Localeinfo;
@@ -280,9 +281,13 @@ package body Formatted_Output is
       I   : Integer;
       J   : Integer := Text_Value'Last;
    begin
+      if Separator'Length = 0 then
+         return Text_Value;
+      end if;
+
       while J >= Text_Value'First loop
          I := J - Group_Size + 1;
-
+         
          if I <= Text_Value'First then
             Insert (Tmp, 1, Text_Value (Text_Value'First .. J));
             exit;
@@ -350,16 +355,26 @@ package body Formatted_Output is
    
    function Set_Leading_Zero (Img : String) return String is
       S   : String := Img;
-      FD  : Natural := Index_Non_Blank (Img, Forward);
+      FD  : Natural := 0;
       Cur : Natural := 0;
-      NS1 : Natural := Index (Img, "#", Img'First);
+      NS1 : Natural := 0;
    begin
+      FD := Index_Non_Blank (Img, Forward);
+
       if Img (FD) = '-' or else Img (FD) = '+' then
          S (1) := Img (FD);
          Cur := 1;
          FD := FD + 1;
       end if;
 
+      --  check using base
+      NS1 := Index
+        (Source => Img,
+         Set    => To_Set ("#xX"),
+         From   => FD,
+         Test   => Inside,
+         Going  => Forward);
+      
       if NS1 > 0 then
          for I in FD .. NS1 loop
             Cur := Cur + 1;
@@ -378,6 +393,10 @@ package body Formatted_Output is
       return S;
    end Set_Leading_Zero;
 
+   ----------------------
+   -- Set_Leading_Zero --
+   ----------------------
+   
    function Set_Leading_Zero
      (Img : String; Separator : String; Group_Size : Integer) return String
    is
@@ -401,7 +420,13 @@ package body Formatted_Output is
          FD := FD + 1;
       end if;
 
-      NS1 := Index (Img, "#", Img'First);
+      --  check using base
+      NS1 := Index
+        (Source => Img,
+         Set    => To_Set ("#xX"),
+         From   => FD,
+         Test   => Inside,
+         Going  => Forward);
       NS2 := Index (Img, Separator, FD);
 
       if NS1 > 0 then

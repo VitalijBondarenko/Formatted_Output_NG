@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -157,9 +157,9 @@ package body Formatted_Output.Float_Output is
       end if;
 
       declare
-         E : String :=
+         E  : String :=
            (if EL + EU > 0 then Text_Value (EP .. LD) else "");
-         I : String :=
+         I  : String :=
            (if DP > 0 then Text_Value (FD .. DP - 1)
             else Text_Value (FD .. EP));
          F  : String :=
@@ -167,13 +167,14 @@ package body Formatted_Output.Float_Output is
               (if EL + EU > 0 then Text_Value (DP + 1 .. EP - 1)
                else Text_Value (DP + 1 .. EP))
             else "");
-         FS : String :=
-           (if Separator /= Ada_Sep_Character then "" else Separator);
+         --  FS : String :=
+         --    (if Separator /= Ada_Sep_Character then "" else Separator);
       begin
          Res := Res
            & Separate_Digit_Groups (I, Separator, Group_Size)
            & (if DP > 0 then
-                 Dec_Point & Separate_Digit_Groups (F, FS, Group_Size)
+                 --  Dec_Point & Separate_Digit_Groups (F, FS, Group_Size)
+                 Dec_Point & F
               else "")
            & E;
       end;
@@ -209,12 +210,16 @@ package body Formatted_Output.Float_Output is
             Item := Item_Type'Rounding (Value);
          end if;
 
-         Width_After := Default_Aft;
+         Width_After := Item_Type'Digits;
       else
          Width_After := Initial_Width_After;
       end if;
 
-      Put (Img, Item, Aft => Field (Width_After), Exp => Field (Width_Exp));
+      Put
+        (To   => Img,
+         Item => Item,
+         Aft  => Field (Width_After),
+         Exp  => Field (Width_Exp));
 
       while Img (Pre_First) /= ' ' loop
          Pre_First := Pre_First - 1;
@@ -308,13 +313,11 @@ package body Formatted_Output.Float_Output is
             case Element (Fmt_Copy, I) is
                when 'e'        =>
                   Replace_Slice
-                    (Fmt_Copy,
-                     Command_Start,
-                     I,
-                     To_Lower
-                       (Format
-                            (Value, Width, Width_After, False, Leading_Zero,
-                             Default_Exp, Justification, Force_Sign, Digit_Groups)));
+                    (Fmt_Copy, Command_Start, I,
+                     To_Lower (
+                       Format
+                         (Value, Width, Width_After, False, Leading_Zero,
+                          Default_Exp, Justification, Force_Sign, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
 
                when 'E'        =>
@@ -368,7 +371,7 @@ package body Formatted_Output.Float_Output is
                when '_'        =>
                   Digit_Groups := Ada_Grouping_Style;
 
-               when '''       =>
+               when '''        =>
                   Digit_Groups := NLS_Grouping_Style;
 
                when '+'        =>
@@ -416,7 +419,7 @@ package body Formatted_Output.Float_Output is
                      end if;
                   end if;
 
-               when others       =>
+               when others     =>
                   raise Format_Error;
             end case;
          end loop;

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -34,6 +34,26 @@ package Formatted_Output.Enumeration_Output is
    function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type;
    --  Replaces leftmost formatting sequence in Fmt with formatted Value image,
    --  then returns Fmt. Raises exception Format_Error when invalid formatting
-   --  sequence is found or no formatting sequence found at all
+   --  sequence is found or no formatting sequence found at all.
+   --
+   --  Format sequences for enumeration types:
+   --
+   --  %[flags][<width>](c|u|l)
+   --
+   --  Flag characters can be:
+   --     +   The converted value is to be right adjusted on the field boundary.
+   --         (This is default.)
+   --     -   The converted value is to be left adjusted on the field boundary.
+   --         (The default is right justification.)
+   --     *   The converted value is to be center adjusted on the field boundary.
+   --         (The default is right justification.)
+   --
+   --  <width> is decimal number specifying minimum field width.
+   --
+   --  Format specifier can be:
+   --     c   convert capitalized.
+   --     l   convert in lower case.
+   --     u   convert in upper case.
+   --     m   convert in mixed case.
 
 end Formatted_Output.Enumeration_Output;

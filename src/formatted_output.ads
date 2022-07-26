@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -36,26 +36,47 @@ package Formatted_Output is
    Empty_Format : constant Format_Type;
    
    function To_String (Fmt : Format_Type) return String;
-   --  Convert formatted string to fixed-length string
+   --  Convert formatted string to fixed-length string.
    --  Example:
    --     Send_To_Terminal (To_String (+"Hello %s\n" & "world"));
 
    function "-" (Fmt : Format_Type) return String
                  renames Formatted_Output.To_String;
-   --  Convert formatted string to fixed-length string
+   --  Convert formatted string to fixed-length string.
 
    function To_Format (Fmt_String : String) return Format_Type;
-   --  Converts String to Format_Type
+   --  Converts String to Format_Type.
 
    function "+" (Fmt_String : String) return Format_Type
                  renames Formatted_Output.To_Format;
-   --  Converts String to Format_Type
+   --  Converts String to Format_Type.
 
    function "&" (Fmt : Format_Type; Value : String) return Format_Type;
    --  Replaces leftmost formatting sequence in Fmt with formatted Value
    --  string, then returns Fmt. Raises exception Format_Error when invalid
    --  string formatting sequence is found or no formatting sequence found
-   --  at all
+   --  at all.
+   --
+   --  Escape sequences in format strings:
+   --     \n   line feed
+   --     \r   carriage return
+   --     \b   backspace
+   --     \t   horizontal tab
+   --     \f   form feed
+   --
+   --  Format sequences for strings:
+   --
+   --  %[flags][<width>]s
+   --  
+   --  Flag characters can be:
+   --     +   The converted value is to be right adjusted on the field boundary.
+   --         (This is default.)
+   --     -   The converted value is to be left adjusted on the field boundary.
+   --         (The default is right justification.)
+   --     *   The converted value is to be center adjusted on the field boundary.
+   --         (The default is right justification.)
+   --  
+   --  <width> is decimal number specifying minimal field width.
 
    procedure Put (Fmt : Format_Type);
    --  Puts formatted string to console using Ada.Text_IO

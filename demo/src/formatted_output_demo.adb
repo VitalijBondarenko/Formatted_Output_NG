@@ -104,7 +104,7 @@ begin
    Ada.Text_IO.New_Line;
 
    Formatted_Output.Put_Line
-     (+"Money type range (%s):\n\t%+_35e .. %-+_35e"
+     (+"Money type range (%s):\n\t%+_35f .. %-+_35f"
       & "type Money is delta 0.01 digits 18"
       & Money'First & Money'Last);
    Ada.Text_IO.New_Line;

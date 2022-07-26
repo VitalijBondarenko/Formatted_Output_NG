@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -44,60 +44,81 @@ package Formatted_Output.Time_Output is
    --
    --  Picture is a string to describe date and time output format. The string
    --  is a set of standard character and special tag that are replaced by the
-   --  corresponding values. Here are the recognized directives :
+   --  corresponding values. Here are the recognized directives:
    --
-   --     %%   a literal %
-   --     \n   a newline
-   --     \t   a horizontal tab
+   --     %%   A literal '%' character.
+   --     \n   A newline.
+   --     \t   A horizontal tab.
    --
-   --  Time fields:
+   --  Date & time fields:
    --
-   --     %H   hour (00 .. 23)
-   --     %I   hour (01 .. 12)
-   --     %k   hour ( 0 .. 23)
-   --     %l   hour ( 1 .. 12)
-   --     %M   minute (00 .. 59)
-   --     %i   milliseconds (000 .. 999)
-   --     %o   microseconds (000000 .. 999999)
-   --     %N   nanoseconds (000000000 .. 999999999)
-   --     %p   locale's AM or PM; blank if not known
-   --     %P   like %p, but lower case
-   --     %r   locale's time, 12-hour notation (e.g., 11:11:04 PM))
-   --     %R   time in 24-hour notation, same as %H:%M
-   --     %s   seconds since 1970-01-01 00:00:00 UTC
-   --     %S   second (00 .. 59)
-   --     %T   time in 24-hour notation, same as %H:%M:%S
+   --     %a   The abbreviated name of the day of the week according to the
+   --          current locale.
+   --     %A   The full name of the day of the week according to the current
+   --          locale.
+   --     %b   The abbreviated month name according to the current locale.
+   --     %B   The full month name according to the current locale.
+   --     %c   The preferred date and time representation for the current
+   --          locale.
+   --     %C   The century number (year/100) as a 2-digit integer.
+   --     %d   The day of the month as a decimal number (01 .. 31).
+   --     %D   Equivalent to %m/%d/%y.
+   --     %e   Like %d, the day of the month as a decimal number, but a leading
+   --          zero is replaced by a space ( 1 .. 31).
+   --     %F   Equivalent to %Y-%m-%d (the ISO 8601 date format).
+   --     %h   Equivalent to %b.
+   --     %H   The hour as a decimal number using a 24-hour clock (00 .. 23).
+   --     %I   The hour as a decimal number using a 12-hour clock (01 .. 12).
+   --     %j   The day of the year as a decimal number (001 .. 366).
+   --     %k   The hour (24-hour clock) as a decimal number ( 0 .. 23);
+   --          single digits are preceded by a blank.
+   --     %l   The hour (12-hour clock) as a decimal number ( 1 .. 12);
+   --          single digits are preceded by a blank.
+   --     %m   The month as a decimal number (01 .. 12).
+   --     %M   The minute as a decimal number (00 .. 59).
+   --     %p   Either "AM" or "PM" according to the given time value, or the
+   --          corresponding strings for the current locale.
+   --          Noon is treated as "PM" and midnight as "AM".
+   --     %P   Like %p but in lowercase: "am" or "pm" or a corresponding string
+   --          for the current locale.
+   --     %r   The time in 12-hour notation. (In the POSIX locale this is
+   --          equivalent to %I:%M:%S %p.)
+   --     %R   The time in 24-hour notation (%H:%M).
+   --     %s   The number of seconds since the Epoch,
+   --          1970-01-01 00:00:00 +0000 (UTC).
+   --     %S   The second as a decimal number (00 .. 59).
+   --     %T   The time in 24-hour notation (%H:%M:%S).
+   --     %u   The day of the week as a decimal (1 .. 7), Monday being 1.
+   --     %U   The week number of the current year as a decimal number
+   --          (00 .. 53), starting with the first Sunday as the first day of
+   --          week 01.
+   --     %w   The day of the week as a decimal (0 .. 6), Sunday being 0.
+   --     %W   The week number of the current year as a decimal number
+   --          (00 .. 53), starting with the first Monday as the first day of
+   --          week 01.
+   --     %x   The preferred date representation for the current locale without
+   --          the time. (In the POSIX locale this is equivalent to %m/%d/%y.)
+   --     %X   The preferred time representation for the current locale without
+   --          the date. (In the POSIX locale this is equivalent to %H:%M:%S.)
+   --     %y   The year as a decimal number without a century (00 .. 99).
+   --     %Y   The year as a decimal number including the century.
+   --     %z   The +hhmm or -hhmm numeric timezone (that is, the hour and
+   --          minute offset from UTC).
+   --     %Z   The timezone name (e.g., UTC+02:00)
    --
-   --  Date fields:
+   --  Additional time fields:
    --
-   --     %a   locale's abbreviated weekday name (Sun .. Sat)
-   --     %A   locale's full weekday name, variable length (Sunday .. Saturday)
-   --     %b   locale's abbreviated month name (Jan .. Dec)
-   --     %B   locale's full month name (January .. December)
-   --     %c   locale's date and time (e.g., Sat Nov 04 12:02:33 EST 1989)
-   --     %C   century number (year/100) as a 2-digit integer
-   --     %d   day of month (01 .. 31)
-   --     %D   date, same as %m/%d/%y
-   --     %e   like %d, but a leading zero is replaced by a space ( 1 .. 31)
-   --     %h   same as %b
-   --     %j   day of year (001 .. 366)
-   --     %m   month (01 .. 12)
-   --     %u   day of week (1 .. 7) with 1 corresponding to Monday
-   --     %U   week number of year with Sunday as first day of week (00 .. 53)
-   --     %w   day of week (0 .. 6) with 0 corresponding to Sunday
-   --     %W   week number of year with Monday as first day  of week (00 .. 53)
-   --     %x   locale's date representation
-   --     %X   locale's time representation
-   --     %y   last two digits of year (00 .. 99)
-   --     %Y   year (e.g., 1970)
-   --     %z   +hhmm numeric time zone (e.g., -0400)
-   --     %Z   alphanumeric time zone (e.g., UTC+02:00)
+   --     %i   The milliseconds as a decimal number (000 .. 999).
+   --     %o   The microseconds as a decimal number (000000 .. 999999).
+   --     %N   The nanoseconds as a decimal number (000000000 .. 999999999).
    --
-   --  By default, date pads numeric fields with zeroes. The following optional
-   --  modifiers recognized:
+   --  Modifiers:
+   --      O   Use alternative numeric symbols.
    --
-   --      -   (hyphen) do not pad the field
-   --      _   (underscore) pad the field with spaces
-   --      0   (zero) pad the field with zeros
+   --  The following flag characters are permitted:
+   --
+   --      -   (hyphen) Do not pad a numeric result string.
+   --      _   (underscore) Pad a numeric result string with spaces.
+   --      0   (zero) Pad a numeric result string with zeros.
 
 end Formatted_Output.Time_Output;

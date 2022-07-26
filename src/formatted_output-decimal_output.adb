@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -48,6 +48,10 @@ package body Formatted_Output.Decimal_Output is
       Force_Sign            : Boolean;
       Digit_Groups          : Digit_Grouping) return String;
 
+   function Set_Valid_Decimal_Point
+     (Text_Value : String;
+      Dec_Point  : String) return String;
+
    function Set_Float_Leading_Zero
      (Text_Value : String;
       Separator  : String;
@@ -59,6 +63,32 @@ package body Formatted_Output.Decimal_Output is
       Separator  : String;
       Dec_Point  : String;
       Group_Size : Integer) return String;
+
+   function Floor (Value : Item_Type) return Item_Type;
+   function Ceiling (Value : Item_Type) return Item_Type;
+   function Rounding (Value : Item_Type; Accuracy : Natural) return Item_Type;
+
+   -----------------------------
+   -- Set_Valid_Decimal_Point --
+   -----------------------------
+
+   function Set_Valid_Decimal_Point
+     (Text_Value : String;
+      Dec_Point  : String) return String
+   is
+      DP : Natural := 0;
+   begin
+      DP := Index (Text_Value, Ada_Dec_Point_Character, Text_Value'First);
+
+      if DP > 0 then
+         return
+           Text_Value (Text_Value'First .. DP - 1)
+           & Dec_Point
+           & Text_Value (DP + 1 .. Text_Value'Last);
+      end if;
+
+      return Text_Value;
+   end Set_Valid_Decimal_Point;
 
    ----------------------------
    -- Set_Float_Leading_Zero --
@@ -118,6 +148,8 @@ package body Formatted_Output.Decimal_Output is
          Res := To_Unbounded_String (Text_Value (Text_Value'First .. FD - 1));
       end if;
 
+      DP := Index (Text_Value, Ada_Dec_Point_Character, FD);
+
       if EL > 0 then
          EP := EL;
       elsif EU > 0 then
@@ -125,8 +157,6 @@ package body Formatted_Output.Decimal_Output is
       else
          EP := LD;
       end if;
-
-      DP := Index (Text_Value, Dec_Point, FD);
 
       declare
          E  : String :=
@@ -139,19 +169,105 @@ package body Formatted_Output.Decimal_Output is
               (if EL + EU > 0 then Text_Value (DP + 1 .. EP - 1)
                else Text_Value (DP + 1 .. EP))
             else "");
-         FS : String :=
-           (if Separator /= Ada_Sep_Character then "" else Separator);
+         --  FS : String :=
+         --    (if Separator /= Ada_Sep_Character then "" else Separator);
       begin
          Res := Res
            & Separate_Digit_Groups (I, Separator, Group_Size)
            & (if DP > 0 then
-                 Dec_Point & Separate_Digit_Groups (F, FS, Group_Size)
+                 --  Dec_Point & Separate_Digit_Groups (F, FS, Group_Size)
+                 Dec_Point & F
               else "")
            & E;
       end;
 
       return To_String (Res);
    end Separate_Float_Digit_Groups;
+
+   -----------
+   -- Floor --
+   -----------
+
+   function Floor (Value : Item_Type) return Item_Type is
+      Str : String (1 .. 64);
+      I_P : Integer;
+   begin
+      Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
+      I_P := Ada.Strings.Fixed.Index (Str, ".");
+
+      return Item_Type'Value (Str (Str'First .. I_P))
+        - (if Value < 0.0 then 1.0 else 0.0);
+   end Floor;
+
+   -------------
+   -- Ceiling --
+   -------------
+
+   function Ceiling (Value : Item_Type) return Item_Type is
+      Str : String (1 .. 64);
+      I_P : Integer;
+   begin
+      Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
+      I_P := Ada.Strings.Fixed.Index (Str, ".");
+
+      return Item_Type'Value (Str (Str'First .. I_P))
+        + (if Value > 0.0 then 1.0 else 0.0);
+   end Ceiling;
+
+   --------------
+   -- Rounding --
+   --------------
+
+   function Rounding (Value : Item_Type; Accuracy : Natural) return Item_Type
+   is
+      Str             : String (1 .. 64);
+      Dec_Point_Pos   : Natural := 0;
+      Result          : Item_Type := 0.0;
+      N_Digit_Pos     : Natural := 0;
+      N_1_Digit_Pos   : Natural := 0;
+      First_Digit_Pos : Natural := 0;
+      Last_Digit_Pos  : Natural := 0;
+   begin
+      Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
+      Dec_Point_Pos := Ada.Strings.Fixed.Index (Str, ".");
+      First_Digit_Pos := Ada.Strings.Fixed.Index_Non_Blank (Str);
+      Last_Digit_Pos := Str'Last;
+
+      if Str (First_Digit_Pos) = '-' then
+         First_Digit_Pos := First_Digit_Pos + 1;
+      end if;
+
+      if Dec_Point_Pos + Accuracy >= Last_Digit_Pos then
+         return Value;
+      end if;
+
+      if Accuracy = 0 then
+         N_Digit_Pos := Dec_Point_Pos - 1;
+         N_1_Digit_Pos := Dec_Point_Pos + 1;
+
+         if Str (N_1_Digit_Pos) >= '5' then
+            Result := Ceiling (Value);
+         else
+            Result := Floor (Value);
+         end if;
+      else
+         N_Digit_Pos := Dec_Point_Pos + Accuracy;
+         N_1_Digit_Pos := N_Digit_Pos + 1;
+
+         declare
+            P : Item_Type := Item_Type'Round (10.0 ** Accuracy);
+            X : Item_Type := Value * P;
+         begin
+            if Str (N_1_Digit_Pos) >= '5' then
+               Result := Ceiling (X) / P;
+            else
+               Result := Floor (X) / P;
+            end if;
+         end;
+      end if;
+
+      return Result;
+   end Rounding;
 
    ------------
    -- Format --
@@ -174,14 +290,23 @@ package body Formatted_Output.Decimal_Output is
       Real_Width  : Integer;
       Pre_First   : Natural := Maximal_Item_Length;
       Last        : Natural := Maximal_Item_Length;
+      Item        : Item_Type := Value;
    begin
       if Initial_Width_After = 0 then
-         Width_After := Default_Aft;
+         if Strip_Trailing_Zeroes then
+            Item := Rounding (Value, 0);
+         end if;
+
+         Width_After := Item_Type'Aft;
       else
          Width_After := Initial_Width_After;
       end if;
 
-      Put (Img, Value, Aft => Field (Width_After), Exp => Field (Width_Exp));
+      Put
+        (To   => Img,
+         Item => Item,
+         Aft  => Field (Width_After),
+         Exp  => Field (Width_Exp));
 
       while Img (Pre_First) /= ' ' loop
          Pre_First := Pre_First - 1;
@@ -197,7 +322,7 @@ package body Formatted_Output.Decimal_Output is
          end if;
       end if;
 
-      if Value > 0.0 and then Force_Sign then
+      if Item > 0.0 and then Force_Sign then
          Img (Pre_First) := '+';
          Pre_First := Pre_First - 1;
       end if;
@@ -219,14 +344,14 @@ package body Formatted_Output.Decimal_Output is
             elsif Digit_Groups = Ada_Grouping_Style then Ada_Sep_Character
             else "");
          P : String :=
-           (if Digit_Groups = NLS_Grouping_Style then Decimal_Point_Character
-            else Ada_Dec_Point_Character);
+           (if Digit_Groups = Ada_Grouping_Style then Ada_Dec_Point_Character
+            else Decimal_Point_Character);
          G : Integer := 3;
          --  (if Digit_Groups = NLS_Style or Base = 10 then 3 else 4);
       begin
          case Digit_Groups is
             when None               =>
-               T := To_Unbounded_String (V);
+               T := To_Unbounded_String (Set_Valid_Decimal_Point (V, P));
             when Ada_Grouping_Style
                | NLS_Grouping_Style =>
                T := To_Unbounded_String
@@ -273,39 +398,44 @@ package body Formatted_Output.Decimal_Output is
 
          for I in Command_Start + 1 .. Length (Fmt_Copy) loop
             case Element (Fmt_Copy, I) is
-               when 'e'        =>
-                  Replace_Slice
-                    (Fmt_Copy,
-                     Command_Start,
-                     I,
-                     To_Lower
-                       (Format
-                            (Value, Width, Width_After, False, Leading_Zero,
-                             Default_Exp, Justification, Force_Sign, Digit_Groups)));
-                  return Format_Type (Fmt_Copy);
-
-               when 'E'        =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format
-                       (Value, Width, Width_After, False, Leading_Zero,
-                        Default_Exp, Justification, Force_Sign, Digit_Groups));
-                  return Format_Type (Fmt_Copy);
-
                when 'f'        =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format
-                       (Value, Width, Width_After, False, Leading_Zero,
-                        0, Justification, Force_Sign, Digit_Groups));
+                  if After_Point and then Width_After = 0 then
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Width_After, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  else
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Width_After, False, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  end if;
+
                   return Format_Type (Fmt_Copy);
 
                when 'g'        =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format
-                       (Value, Width, Width_After, True, Leading_Zero,
-                        0, Justification, Force_Sign, Digit_Groups));
+                  if After_Point and then Width_After = 0 then
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, 1, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  elsif not After_Point then
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Default_Aft, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  else
+                     Replace_Slice
+                       (Fmt_Copy, Command_Start, I,
+                        Format
+                          (Value, Width, Width_After, True, Leading_Zero,
+                           0, Justification, Force_Sign, Digit_Groups));
+                  end if;
+
                   return Format_Type (Fmt_Copy);
 
                when '_'        =>

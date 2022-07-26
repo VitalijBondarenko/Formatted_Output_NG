@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2021 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -34,6 +34,32 @@ package Formatted_Output.Float_Output is
    function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type;
    --  Replaces leftmost formatting sequence in Fmt with formatted Value image,
    --  then returns Fmt. Raises exception Format_Error when invalid formatting
-   --  sequence is found or no formatting sequence found at all
+   --  sequence is found or no formatting sequence found at all.
+   --
+   --  Format sequences for floating point types:
+   --
+   --  %[flags][<width>[.<width_aft>]](e|f|g)
+   --
+   --  Flag characters can be:
+   --     -   The converted value is to be left adjusted on the field boundary.
+   --         (The default is right justification.)
+   --     *   The converted value is to be center adjusted on the field boundary.
+   --         (The default is right justification.)
+   --     +   A sign (+ or -) should always be placed before a number produced by a
+   --         signed conversion. By default, a sign is used only for negative numbers.
+   --     0   The value should be zero padded.
+   --     _   The output is to be grouped with grouping character '_'. Group size is 3.
+   --     '   The output is to be grouped with thousands' grouping characters if the
+   --         locale information indicates any.
+   --
+   --  <width> is decimal number specifying minimal field width.
+   --
+   --  <width_aft> is decimal number specifying number of digits after decimal point.
+   --
+   --  Format specifier can be:
+   --     e   Convert to exponential representation. Uses the letter 'e' (lowercase).
+   --     E   Convert to exponential representation. Uses the letter 'E' (uppercase).
+   --     f   Convert without exponent field.
+   --     g   Convert to shortest representation without any trailing zeroes.
 
 end Formatted_Output.Float_Output;
