@@ -297,7 +297,7 @@ package body Formatted_Output.Decimal_Output is
             Item := Rounding (Value, 0);
          end if;
 
-         Width_After := Item_Type'Aft;
+         Width_After := Item_Type_IO.Default_Aft;
       else
          Width_After := Initial_Width_After;
       end if;

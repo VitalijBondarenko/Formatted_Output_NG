@@ -210,7 +210,7 @@ package body Formatted_Output.Float_Output is
             Item := Item_Type'Rounding (Value);
          end if;
 
-         Width_After := Item_Type'Digits;
+         Width_After := Item_Type_IO.Default_Aft;
       else
          Width_After := Initial_Width_After;
       end if;
