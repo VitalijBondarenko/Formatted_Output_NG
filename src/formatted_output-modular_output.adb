@@ -34,7 +34,7 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 package body Formatted_Output.Modular_Output is
 
-   package Item_Type_IO is new Ada.Text_IO.Modular_IO (Item_Type);
+   package Item_Type_IO is new Ada.Text_IO.Modular_IO (Item_Type'Base);
    use Item_Type_IO;
  
    function Separate_Modular_Digit_Groups
@@ -43,7 +43,7 @@ package body Formatted_Output.Modular_Output is
       Group_Size : Integer) return String;
    
    function Format
-     (Value         : Item_Type;
+     (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
       Base          : Integer;
@@ -60,8 +60,8 @@ package body Formatted_Output.Modular_Output is
       Separator  : String;
       Group_Size : Integer) return String
    is
-      FD  : Natural := Index_Non_Blank (Text_Value, Forward);
-      LD  : Natural := Index_Non_Blank (Text_Value, Backward);
+      FD : Natural := Index_Non_Blank (Text_Value, Forward);
+      LD : Natural := Index_Non_Blank (Text_Value, Backward);
    begin
       if Separator'Length = 0 then
          return Text_Value;
@@ -78,7 +78,7 @@ package body Formatted_Output.Modular_Output is
    ------------
 
    function Format
-     (Value         : Item_Type;
+     (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
       Base          : Integer;
@@ -183,7 +183,8 @@ package body Formatted_Output.Modular_Output is
    -- "&" --
    ---------
 
-   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type is
+   function "&" (Fmt : Format_Type; Value : Item_Type'Base) return Format_Type
+   is
       Command_Start         : constant Integer := Scan_To_Percent_Sign (Fmt);
       Leading_Zero          : Boolean := False;
       Width                 : Integer := 0;
@@ -202,45 +203,43 @@ package body Formatted_Output.Modular_Output is
                when 'd'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Leading_Zero,
-                       10, Justification, Base_Style,
-                       Digit_Groups));
+                     Format
+                       (Value, Width, Leading_Zero, 10, Justification,
+                        None, Digit_Groups));
                   return Format_Type (Fmt_Copy);
                   
                when 'x'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     To_Lower
-                       (Format
-                            (Value, Width, Leading_Zero,
-                             16, Justification, Base_Style,
-                             Digit_Groups)));
+                     To_Lower (
+                       Format
+                         (Value, Width, Leading_Zero, 16, Justification,
+                          Base_Style, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
                   
                when 'X'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     To_Upper
-                       (Format
-                            (Value, Width, Leading_Zero,
-                             16, Justification, Base_Style,
-                             Digit_Groups)));
+                     To_Upper (
+                       Format
+                         (Value, Width, Leading_Zero, 16, Justification,
+                          Base_Style, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
                   
                when 'o'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Leading_Zero,
-                       8, Justification, Base_Style,
-                       Digit_Groups));
+                     Format
+                       (Value, Width, Leading_Zero, 8, Justification,
+                        Base_Style, Digit_Groups));
                   return Format_Type (Fmt_Copy);
                   
                when 'b'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Leading_Zero,
-                       2, Justification, Base_Style,
-                       Digit_Groups));
+                     Format
+                       (Value, Width, Leading_Zero, 2, Justification,
+                        Base_Style, Digit_Groups));
                   return Format_Type (Fmt_Copy);
                   
                when '_'        =>

@@ -37,7 +37,8 @@ package body Formatted_Output.Enumeration_Output is
    package Item_Type_IO is new Ada.Text_IO.Enumeration_IO (Item_Type);
    use Item_Type_IO;
 
-   type Style_Type is (Capitalized, Lower_Case, Upper_Case, Mixed);
+   type Style_Type is
+     (Style_Capitalized, Style_Lower_Case, Style_Upper_Case, Style_Mixed);
 
    function Format
      (Value         : Item_Type;
@@ -61,17 +62,17 @@ package body Formatted_Output.Enumeration_Output is
       Past_Last  : Integer := Img'First;
       Ind        : Natural;
    begin
-      Put (Img, Value, Type_Set'(Lower_Case));
+      Put (Img, Value, Lower_Case);
       Past_Last := Index_Non_Blank (Img, Backward);
 
       case Style is
-         when Capitalized =>
+         when Style_Capitalized =>
             Img (Img'First) := To_Upper (Img (Img'First));
-         when Lower_Case  =>
+         when Style_Lower_Case  =>
             null;
-         when Upper_Case  =>
+         when Style_Upper_Case  =>
             Img := To_Upper (Img);
-         when Mixed       =>
+         when Style_Mixed       =>
             Img (Img'First) := To_Upper (Img (Img'First));
             Ind := Img'First + 1;
 
@@ -97,8 +98,9 @@ package body Formatted_Output.Enumeration_Output is
          S : String (1 .. Width);
       begin
          Move
-           (Img (Past_Last - Real_Width + 1 .. Past_Last),
-            S,
+           (Source  => Img (Past_Last - Real_Width + 1 .. Past_Last),
+            Target  => S,
+            Drop    => Error,
             Justify => Justification,
             Pad     => Filler);
          return S;
@@ -125,25 +127,25 @@ package body Formatted_Output.Enumeration_Output is
                when 'c'             =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Capitalized));
+                     Format (Value, Width, Justification, Style_Capitalized));
                   return Format_Type (Fmt_Copy);
 
                when 'u'             =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Upper_Case));
+                     Format (Value, Width, Justification, Style_Upper_Case));
                   return Format_Type (Fmt_Copy);
 
                when 'l'             =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Lower_Case));
+                     Format (Value, Width, Justification, Style_Lower_Case));
                   return Format_Type (Fmt_Copy);
 
                when 'm'             =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Mixed));
+                     Format (Value, Width, Justification, Style_Mixed));
                   return Format_Type (Fmt_Copy);
 
                when '-' | '+' | '*' =>

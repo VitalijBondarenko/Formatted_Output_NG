@@ -187,6 +187,10 @@ package body Formatted_Output is
       Put (To_String (Fmt));
    end Put;
 
+   ---------
+   -- Put --
+   ---------
+
    procedure Put (File : File_Type; Fmt : Format_Type) is
    begin
       Put (File, To_String (Fmt));
@@ -200,6 +204,10 @@ package body Formatted_Output is
    begin
       Put_Line (To_String (Fmt));
    end Put_Line;
+
+   --------------
+   -- Put_Line --
+   --------------
 
    procedure Put_Line (File : File_Type; Fmt : Format_Type) is
    begin

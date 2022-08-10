@@ -36,7 +36,7 @@ with Interfaces;              use Interfaces;
 
 package body Formatted_Output.Integer_Output is
 
-   package Item_Type_IO is new Ada.Text_IO.Integer_IO (Item_Type);
+   package Item_Type_IO is new Ada.Text_IO.Integer_IO (Item_Type'Base);
    use Item_Type_IO;
 
    type Neg_Number_Represent is (Sign_Magnitude, Twos_Complement);
@@ -58,7 +58,7 @@ package body Formatted_Output.Integer_Output is
       Group_Size : Integer) return String;
    
    function Format
-     (Value         : Item_Type;
+     (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
       Base          : Integer;
@@ -138,6 +138,15 @@ package body Formatted_Output.Integer_Output is
       end if;
    end Int_To_Str;
 
+   ------------------
+   -- Int_xx_To_Str --
+   ------------------
+   
+   procedure Int_8_To_Str is new Int_To_Str (Integer_8, Unsigned_8);
+   procedure Int_16_To_Str is new Int_To_Str (Integer_16, Unsigned_16);
+   procedure Int_32_To_Str is new Int_To_Str (Integer_32, Unsigned_32);
+   procedure Int_64_To_Str is new Int_To_Str (Integer_64, Unsigned_64);
+
    -----------------------------------
    -- Separate_Integer_Digit_Groups --
    -----------------------------------
@@ -177,14 +186,8 @@ package body Formatted_Output.Integer_Output is
    -- Format --
    ------------
 
-   procedure Int8_To_Str is new Int_To_Str (Short_Short_Integer, Unsigned_8);
-   procedure Int16_To_Str is new Int_To_Str (Short_Integer, Unsigned_16);
-   procedure Int32_To_Str is new Int_To_Str (Integer, Unsigned_32);
-   procedure Int64_To_Str is new Int_To_Str (Long_Integer, Unsigned_64);
-   procedure Int64_To_Str is new Int_To_Str (Long_Long_Integer, Unsigned_64);
-
    function Format
-     (Value         : Item_Type;
+     (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
       Base          : Integer;
@@ -199,7 +202,6 @@ package body Formatted_Output.Integer_Output is
       Pre_First  : Natural;
       Last       : Natural;
       Neg_Num    : Neg_Number_Represent;
-      use Interfaces;
    begin
       if Base_Style = C_Base_Style then
          Neg_Num := Twos_Complement;
@@ -207,16 +209,14 @@ package body Formatted_Output.Integer_Output is
          Neg_Num := Sign_Magnitude;
       end if;
       
-      if Item_Type'Base'Size > Long_Integer'Size then
-         Int64_To_Str (Img, Long_Long_Integer (Value), Base, Neg_Num);
-      elsif Item_Type'Base'Size > Integer'Size then
-         Int64_To_Str (Img, Long_Integer (Value), Base, Neg_Num);
-      elsif Item_Type'Base'Size > Short_Integer'Size then
-         Int32_To_Str (Img, Integer (Value), Base, Neg_Num);
-      elsif Item_Type'Base'Size > Short_Short_Integer'Size then
-         Int16_To_Str (Img, Short_Integer (Value), Base, Neg_Num);
+      if Item_Type'Base'Size > 32 then
+         Int_64_To_Str (Img, Integer_64 (Value), Base, Neg_Num);
+      elsif Item_Type'Base'Size > 16 then
+         Int_32_To_Str (Img, Integer_32 (Value), Base, Neg_Num);
+      elsif Item_Type'Base'Size > 8 then
+         Int_16_To_Str (Img, Integer_16 (Value), Base, Neg_Num);
       else
-         Int8_To_Str (Img, Short_Short_Integer (Value), Base, Neg_Num);
+         Int_8_To_Str (Img, Integer_8 (Value), Base, Neg_Num);
       end if;
       
       Last := Img'Last;
@@ -311,7 +311,8 @@ package body Formatted_Output.Integer_Output is
    -- "&" --
    ---------
 
-   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type is
+   function "&" (Fmt : Format_Type; Value : Item_Type'Base) return Format_Type
+   is
       Command_Start         : constant Integer := Scan_To_Percent_Sign (Fmt);
       Leading_Zero          : Boolean := False;
       Width                 : Integer := 0;
@@ -334,23 +335,25 @@ package body Formatted_Output.Integer_Output is
                     (Fmt_Copy, Command_Start, I,
                      Format
                        (Value, Width, Leading_Zero, 10,
-                        Justification, Force_Sign, Base_Style, Digit_Groups));
+                        Justification, Force_Sign, None, Digit_Groups));
                   return Format_Type (Fmt_Copy);
                   
                when 'x'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     To_Lower (Format
-                       (Value, Width, Leading_Zero, 16, Justification,
-                            Force_Sign, Base_Style, Digit_Groups)));
+                     To_Lower (
+                       Format
+                         (Value, Width, Leading_Zero, 16, Justification,
+                          Force_Sign, Base_Style, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
                   
                when 'X'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     To_Upper (Format
-                       (Value, Width, Leading_Zero, 16, Justification,
-                            Force_Sign, Base_Style, Digit_Groups)));
+                     To_Upper (
+                       Format
+                         (Value, Width, Leading_Zero, 16, Justification,
+                          Force_Sign, Base_Style, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
                   
                when 'o'        =>

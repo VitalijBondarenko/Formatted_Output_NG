@@ -38,7 +38,7 @@ package Formatted_Output.Enumeration_Output is
    --
    --  Format sequences for enumeration types:
    --
-   --  %[flags][<width>](c|u|l)
+   --  %[flags][<width>](c|l|u|m)
    --
    --  Flag characters can be:
    --     +   The converted value is to be right adjusted on the field boundary.

@@ -31,7 +31,7 @@ generic
 
 package Formatted_Output.Integer_Output is
 
-   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type;
+   function "&" (Fmt : Format_Type; Value : Item_Type'Base) return Format_Type;
    --  Replaces leftmost formatting sequence in Fmt with formatted Value image,
    --  then returns Fmt. Raises exception Format_Error when invalid formatting
    --  sequence is found or no formatting sequence found at all.

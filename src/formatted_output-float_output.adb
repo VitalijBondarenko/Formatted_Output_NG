@@ -34,13 +34,13 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 package body Formatted_Output.Float_Output is
 
-   package Item_Type_IO is new Ada.Text_IO.Float_IO (Item_Type);
+   package Item_Type_IO is new Ada.Text_IO.Float_IO (Item_Type'Base);
    use Item_Type_IO;
 
    Maximal_Float_Item_Length : constant := 512;
 
    function Format
-     (Value                 : Item_Type;
+     (Value                 : Item_Type'Base;
       Initial_Width         : Integer;
       Initial_Width_After   : Integer;
       Strip_Trailing_Zeroes : Boolean;
@@ -187,7 +187,7 @@ package body Formatted_Output.Float_Output is
    ------------
 
    function Format
-     (Value                 : Item_Type;
+     (Value                 : Item_Type'Base;
       Initial_Width         : Integer;
       Initial_Width_After   : Integer;
       Strip_Trailing_Zeroes : Boolean;
@@ -203,11 +203,11 @@ package body Formatted_Output.Float_Output is
       Real_Width  : Integer;
       Pre_First   : Natural := Maximal_Float_Item_Length;
       Last        : Natural := Maximal_Float_Item_Length;
-      Item        : Item_Type := Value;
+      Item        : Item_Type'Base := Value;
    begin
       if Initial_Width_After = 0 then
          if Strip_Trailing_Zeroes then
-            Item := Item_Type'Rounding (Value);
+            Item := Item_Type'Base'Rounding (Value);
          end if;
 
          Width_After := Item_Type_IO.Default_Aft;
@@ -293,7 +293,8 @@ package body Formatted_Output.Float_Output is
    -- "&" --
    ---------
 
-   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type is
+   function "&" (Fmt : Format_Type; Value : Item_Type'Base) return Format_Type
+   is
       Command_Start         : constant Integer := Scan_To_Percent_Sign (Fmt);
       Leading_Zero          : Boolean := False;
       After_Point           : Boolean := False;

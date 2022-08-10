@@ -34,11 +34,11 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 package body Formatted_Output.Decimal_Output is
 
-   package Item_Type_IO is new Ada.Text_IO.Decimal_IO (Item_Type);
+   package Item_Type_IO is new Ada.Text_IO.Decimal_IO (Item_Type'Base);
    use Item_Type_IO;
 
    function Format
-     (Value                 : Item_Type;
+     (Value                 : Item_Type'Base;
       Initial_Width         : Integer;
       Initial_Width_After   : Integer;
       Strip_Trailing_Zeroes : Boolean;
@@ -64,9 +64,13 @@ package body Formatted_Output.Decimal_Output is
       Dec_Point  : String;
       Group_Size : Integer) return String;
 
-   function Floor (Value : Item_Type) return Item_Type;
-   function Ceiling (Value : Item_Type) return Item_Type;
-   function Rounding (Value : Item_Type; Accuracy : Natural) return Item_Type;
+   function Floor (Value : Item_Type'Base) return Item_Type'Base;
+   function Ceiling (Value : Item_Type'Base) return Item_Type'Base;
+   function Integer_Part (Value : Item_Type'Base) return Item_Type'Base;
+   function Fraction_Part (Value : Item_Type'Base) return Item_Type'Base;
+   function Truncation (Value : Item_Type'Base) return Item_Type'Base;
+   function Rounding
+     (Value : Item_Type'Base; Accuracy : Natural) return Item_Type'Base;
 
    -----------------------------
    -- Set_Valid_Decimal_Point --
@@ -188,14 +192,14 @@ package body Formatted_Output.Decimal_Output is
    -- Floor --
    -----------
 
-   function Floor (Value : Item_Type) return Item_Type is
-      Str : String (1 .. 64);
+   function Floor (Value : Item_Type'Base) return Item_Type'Base is
+      Str : String (1 .. Ada.Text_IO.Field'Last);
       I_P : Integer;
    begin
       Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
       I_P := Ada.Strings.Fixed.Index (Str, ".");
 
-      return Item_Type'Value (Str (Str'First .. I_P))
+      return Item_Type'Base'Value (Str (Str'First .. I_P))
         - (if Value < 0.0 then 1.0 else 0.0);
    end Floor;
 
@@ -203,78 +207,71 @@ package body Formatted_Output.Decimal_Output is
    -- Ceiling --
    -------------
 
-   function Ceiling (Value : Item_Type) return Item_Type is
-      Str : String (1 .. 64);
+   function Ceiling (Value : Item_Type'Base) return Item_Type'Base is
+      Str : String (1 .. Ada.Text_IO.Field'Last);
       I_P : Integer;
    begin
       Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
       I_P := Ada.Strings.Fixed.Index (Str, ".");
 
-      return Item_Type'Value (Str (Str'First .. I_P))
+      return Item_Type'Base'Value (Str (Str'First .. I_P))
         + (if Value > 0.0 then 1.0 else 0.0);
    end Ceiling;
+
+   ------------------
+   -- Integer_Part --
+   ------------------
+
+   function Integer_Part  (Value : Item_Type'Base) return Item_Type'Base is
+     (Floor (Value));
+
+   -------------------
+   -- Fraction_Part --
+   -------------------
+
+   function Fraction_Part  (Value : Item_Type'Base) return Item_Type'Base is
+   begin
+      return Value - Integer_Part (Value);
+   end Fraction_Part;
+
+   ----------------
+   -- Truncation --
+   ----------------
+
+   function Truncation (Value : Item_Type'Base) return Item_Type'Base is
+     (if Value < 0.0 then Ceiling (Value) else Floor (Value));
 
    --------------
    -- Rounding --
    --------------
 
-   function Rounding (Value : Item_Type; Accuracy : Natural) return Item_Type
+   function Rounding
+     (Value : Item_Type'Base; Accuracy : Natural) return Item_Type'Base
    is
-      Str             : String (1 .. 64);
-      Dec_Point_Pos   : Natural := 0;
-      Result          : Item_Type := 0.0;
-      N_Digit_Pos     : Natural := 0;
-      N_1_Digit_Pos   : Natural := 0;
-      First_Digit_Pos : Natural := 0;
-      Last_Digit_Pos  : Natural := 0;
+      Result : Item_Type'Base := Truncation (Value);
+      Powten : Item_Type'Base := Item_Type'Base'Round (10.0 ** Accuracy);
+      Frac   : Item_Type'Base;
    begin
-      Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
-      Dec_Point_Pos := Ada.Strings.Fixed.Index (Str, ".");
-      First_Digit_Pos := Ada.Strings.Fixed.Index_Non_Blank (Str);
-      Last_Digit_Pos := Str'Last;
+      if Accuracy > 0 then
+         Frac := Fraction_Part (Value) * Powten;
+         Frac := Frac - Truncation (Frac);
 
-      if Str (First_Digit_Pos) = '-' then
-         First_Digit_Pos := First_Digit_Pos + 1;
-      end if;
-
-      if Dec_Point_Pos + Accuracy >= Last_Digit_Pos then
-         return Value;
-      end if;
-
-      if Accuracy = 0 then
-         N_Digit_Pos := Dec_Point_Pos - 1;
-         N_1_Digit_Pos := Dec_Point_Pos + 1;
-
-         if Str (N_1_Digit_Pos) >= '5' then
-            Result := Ceiling (Value);
+         if Frac >= 0.5 then
+            Result := Ceiling (Value * Powten) / Powten;
          else
-            Result := Floor (Value);
+            Result := Floor (Value * Powten) / Powten;
          end if;
-      else
-         N_Digit_Pos := Dec_Point_Pos + Accuracy;
-         N_1_Digit_Pos := N_Digit_Pos + 1;
-
-         declare
-            P : Item_Type := Item_Type'Round (10.0 ** Accuracy);
-            X : Item_Type := Value * P;
-         begin
-            if Str (N_1_Digit_Pos) >= '5' then
-               Result := Ceiling (X) / P;
-            else
-               Result := Floor (X) / P;
-            end if;
-         end;
       end if;
 
-      return Result;
-   end Rounding;
+   return Result;
+end Rounding;
 
    ------------
    -- Format --
    ------------
 
    function Format
-     (Value                 : Item_Type;
+     (Value                 : Item_Type'Base;
       Initial_Width         : Integer;
       Initial_Width_After   : Integer;
       Strip_Trailing_Zeroes : Boolean;
@@ -290,7 +287,7 @@ package body Formatted_Output.Decimal_Output is
       Real_Width  : Integer;
       Pre_First   : Natural := Maximal_Item_Length;
       Last        : Natural := Maximal_Item_Length;
-      Item        : Item_Type := Value;
+      Item        : Item_Type'Base := Value;
    begin
       if Initial_Width_After = 0 then
          if Strip_Trailing_Zeroes then
@@ -380,7 +377,8 @@ package body Formatted_Output.Decimal_Output is
    -- "&" --
    ---------
 
-   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type is
+   function "&" (Fmt : Format_Type; Value : Item_Type'Base) return Format_Type
+   is
       Command_Start         : constant Integer := Scan_To_Percent_Sign (Fmt);
       Leading_Zero          : Boolean := False;
       After_Point           : Boolean := False;

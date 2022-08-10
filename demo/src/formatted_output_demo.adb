@@ -22,6 +22,7 @@ procedure Formatted_Output_Demo is
 
    procedure Show_Integer_Ranges;
    procedure Show_Float_Ranges;
+   procedure Show_Enum_Style;
 
    -------------------------
    -- Show_Integer_Ranges --
@@ -69,6 +70,31 @@ procedure Formatted_Output_Demo is
          & Long_Long_Float'First & Long_Long_Float'Last);
    end Show_Float_Ranges;
 
+   ---------------------
+   -- Show_Enum_Style --
+   ---------------------
+
+   procedure Show_Enum_Style is
+      package File_Mode_Output is
+        new Formatted_Output.Enumeration_Output (Ada.Text_IO.File_Mode);
+      use File_Mode_Output;
+      use Ada.Text_IO;
+   begin
+      Put_Line
+        (+"%s"
+         & "Ada.Text_IO.File_Mode enumeration type (in different styles):");
+      Put_Line
+        (+"%15s => %c, %c, %c" & "Capitalized" & In_File & Out_File & Append_File);
+      Put_Line
+        (+"%15s => %l, %l, %l" & "Lower Case " & In_File & Out_File & Append_File);
+      Put_Line
+        (+"%15s => %u, %u, %u" & "Upper Case " & In_File & Out_File & Append_File);
+      Put_Line
+        (+"%15s => %m, %m, %m" & "Mixed Case " & In_File & Out_File & Append_File);
+   end Show_Enum_Style;
+
+   ----------------------------------------------------------------------------
+
    package Unsigned_Output is
      new Formatted_Output.Modular_Output (Interfaces.Unsigned_64);
    use Unsigned_Output;
@@ -107,6 +133,9 @@ begin
      (+"Money type range (%s):\n\t%+_35f .. %-+_35f"
       & "type Money is delta 0.01 digits 18"
       & Money'First & Money'Last);
+   Ada.Text_IO.New_Line;
+
+   Show_Enum_Style;
    Ada.Text_IO.New_Line;
 
    Formatted_Output.Put_Line
