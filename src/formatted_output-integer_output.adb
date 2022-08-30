@@ -33,6 +33,7 @@ with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Unchecked_Conversion;
 with Interfaces;              use Interfaces;
+with System;
 
 package body Formatted_Output.Integer_Output is
 
@@ -41,7 +42,7 @@ package body Formatted_Output.Integer_Output is
 
    type Neg_Number_Represent is (Sign_Magnitude, Twos_Complement);
 
-   subtype Base_Type is Integer range 2 .. 64;
+   subtype Base_Type is Integer range 2 .. 16;
 
    generic
       type Int is range <>;
@@ -97,7 +98,7 @@ package body Formatted_Output.Integer_Output is
          Divider := Int (Base);
    
          while Quotient /= 0 loop
-            Remainder := Quotient mod Divider;
+            Remainder := Quotient rem Divider;
             Quotient := Quotient / Divider;
             Result (Index) := Digit_Symbols (Natural (Remainder) + 1);
             Index := Index - 1;
@@ -116,7 +117,7 @@ package body Formatted_Output.Integer_Output is
          Uns_D := To_Unsigned (Int (Base));
    
          while Uns_Q /= 0 loop
-            Uns_R := Uns_Q mod Uns_D;
+            Uns_R := Uns_Q rem Uns_D;
             Uns_Q := Uns_Q / Uns_D;
             Result (Index) := Digit_Symbols (Natural (Uns_R) + 1);
             Index := Index - 1;
@@ -146,6 +147,10 @@ package body Formatted_Output.Integer_Output is
    procedure Int_16_To_Str is new Int_To_Str (Integer_16, Unsigned_16);
    procedure Int_32_To_Str is new Int_To_Str (Integer_32, Unsigned_32);
    procedure Int_64_To_Str is new Int_To_Str (Integer_64, Unsigned_64);
+   
+   type Longest_Integer is range System.Min_Int .. System.Max_Int;
+   type Longest_Unsigned is mod System.Max_Binary_Modulus;
+   procedure Int_Max_To_Str is new Int_To_Str (Longest_Integer, Longest_Unsigned);
 
    -----------------------------------
    -- Separate_Integer_Digit_Groups --
@@ -209,7 +214,9 @@ package body Formatted_Output.Integer_Output is
          Neg_Num := Sign_Magnitude;
       end if;
       
-      if Item_Type'Base'Size > 32 then
+      if Item_Type'Base'Size > 64 then
+         Int_Max_To_Str (Img, Longest_Integer (Value), Base, Neg_Num);
+      elsif Item_Type'Base'Size > 32 then
          Int_64_To_Str (Img, Integer_64 (Value), Base, Neg_Num);
       elsif Item_Type'Base'Size > 16 then
          Int_32_To_Str (Img, Integer_32 (Value), Base, Neg_Num);
@@ -232,12 +239,7 @@ package body Formatted_Output.Integer_Output is
       end if;
       
       Real_Width := Last - Pre_First;
-      
-      if Initial_Width < Real_Width then
-         Width := Real_Width;
-      else
-         Width := Initial_Width;
-      end if;
+      Width := Integer'Max (Initial_Width, Real_Width);
       
       declare
          S : String (1 .. Width);
@@ -267,8 +269,10 @@ package body Formatted_Output.Integer_Output is
 
          case Base_Style is
             when None           =>
-               if Value < 0 and Base = 10 then
+               if Value < 0 then --  and Base = 10 then
                   T := "-" & T;
+               elsif Value > 0 and then Force_Sign then
+                  T := "+" & T;
                end if;
             when C_Base_Style   =>
                case Base is
@@ -286,6 +290,8 @@ package body Formatted_Output.Integer_Output is
                
                if Value < 0 and Base /= 10 then
                   T := "-" & T;
+               elsif Value > 0 and then Force_Sign then
+                  T := "+" & T;
                end if;
          end case;
 

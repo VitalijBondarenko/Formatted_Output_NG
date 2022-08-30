@@ -37,7 +37,7 @@ package body Formatted_Output.Float_Output is
    package Item_Type_IO is new Ada.Text_IO.Float_IO (Item_Type'Base);
    use Item_Type_IO;
 
-   Maximal_Float_Item_Length : constant := 512;
+   Maximal_Float_Item_Length : constant := 5200;
 
    function Format
      (Value                 : Item_Type'Base;
@@ -241,12 +241,7 @@ package body Formatted_Output.Float_Output is
       end if;
 
       Real_Width := Last - Pre_First;
-
-      if Initial_Width < Real_Width then
-         Width := Real_Width;
-      else
-         Width := Initial_Width;
-      end if;
+      Width := Integer'Max (Initial_Width, Real_Width);
 
       declare
          S : String (1 .. Width);

@@ -45,8 +45,6 @@ package Formatted_Output.Modular_Output is
    --         (The default is right justification.)
    --     *   The converted value is to be center adjusted on the field boundary.
    --         (The default is right justification.)
-   --     +   A sign (+ or -) should always be placed before a number produced by a
-   --         signed conversion. By default, a sign is used only for negative numbers.
    --     #   Used with o, x or X specifiers the value is use with Base in C style.
    --     ~   As above, but using Ada style based <base>#<number>#
    --     0   The value should be zero padded.

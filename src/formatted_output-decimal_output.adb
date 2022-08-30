@@ -26,16 +26,18 @@
 -- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                   --
 ------------------------------------------------------------------------------
 
+with System;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Strings;             use Ada.Strings;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
-with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 package body Formatted_Output.Decimal_Output is
 
    package Item_Type_IO is new Ada.Text_IO.Decimal_IO (Item_Type'Base);
    use Item_Type_IO;
+
+   type Longest_Integer is range System.Min_Int .. System.Max_Int;
 
    function Format
      (Value                 : Item_Type'Base;
@@ -64,13 +66,7 @@ package body Formatted_Output.Decimal_Output is
       Dec_Point  : String;
       Group_Size : Integer) return String;
 
-   function Floor (Value : Item_Type'Base) return Item_Type'Base;
-   function Ceiling (Value : Item_Type'Base) return Item_Type'Base;
-   function Integer_Part (Value : Item_Type'Base) return Item_Type'Base;
-   function Fraction_Part (Value : Item_Type'Base) return Item_Type'Base;
-   function Truncation (Value : Item_Type'Base) return Item_Type'Base;
-   function Rounding
-     (Value : Item_Type'Base; Accuracy : Natural) return Item_Type'Base;
+   function Round_To_Int (Number : Item_Type'Base) return Item_Type'Base;
 
    -----------------------------
    -- Set_Valid_Decimal_Point --
@@ -188,83 +184,39 @@ package body Formatted_Output.Decimal_Output is
       return To_String (Res);
    end Separate_Float_Digit_Groups;
 
-   -----------
-   -- Floor --
-   -----------
-
-   function Floor (Value : Item_Type'Base) return Item_Type'Base is
-      Str : String (1 .. Ada.Text_IO.Field'Last);
-      I_P : Integer;
-   begin
-      Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
-      I_P := Ada.Strings.Fixed.Index (Str, ".");
-
-      return Item_Type'Base'Value (Str (Str'First .. I_P))
-        - (if Value < 0.0 then 1.0 else 0.0);
-   end Floor;
-
-   -------------
-   -- Ceiling --
-   -------------
-
-   function Ceiling (Value : Item_Type'Base) return Item_Type'Base is
-      Str : String (1 .. Ada.Text_IO.Field'Last);
-      I_P : Integer;
-   begin
-      Put (To => Str, Item => Value, Aft => Item_Type'Aft, Exp => 0);
-      I_P := Ada.Strings.Fixed.Index (Str, ".");
-
-      return Item_Type'Base'Value (Str (Str'First .. I_P))
-        + (if Value > 0.0 then 1.0 else 0.0);
-   end Ceiling;
-
    ------------------
-   -- Integer_Part --
+   -- Round_To_Int --
    ------------------
 
-   function Integer_Part  (Value : Item_Type'Base) return Item_Type'Base is
-     (Floor (Value));
-
-   -------------------
-   -- Fraction_Part --
-   -------------------
-
-   function Fraction_Part  (Value : Item_Type'Base) return Item_Type'Base is
+   function Round_To_Int (Number : Item_Type'Base) return Item_Type'Base is
+      Scale : constant Integer := Item_Type'Scale;
+      I     : Longest_Integer;
+      R     : Longest_Integer;
+      S_10  : Longest_Integer;
+      Sign  : Longest_Integer;
    begin
-      return Value - Integer_Part (Value);
-   end Fraction_Part;
+      if Scale > 0 then
+         I := Longest_Integer'Integer_Value (Number);
 
-   ----------------
-   -- Truncation --
-   ----------------
-
-   function Truncation (Value : Item_Type'Base) return Item_Type'Base is
-     (if Value < 0.0 then Ceiling (Value) else Floor (Value));
-
-   --------------
-   -- Rounding --
-   --------------
-
-   function Rounding
-     (Value : Item_Type'Base; Accuracy : Natural) return Item_Type'Base
-   is
-      Result : Item_Type'Base := Truncation (Value);
-      Powten : Item_Type'Base := Item_Type'Base'Round (10.0 ** Accuracy);
-      Frac   : Item_Type'Base;
-   begin
-      if Accuracy > 0 then
-         Frac := Fraction_Part (Value) * Powten;
-         Frac := Frac - Truncation (Frac);
-
-         if Frac >= 0.5 then
-            Result := Ceiling (Value * Powten) / Powten;
+         if I < 0 then
+            Sign := -1;
          else
-            Result := Floor (Value * Powten) / Powten;
+            Sign := +1;
          end if;
-      end if;
 
-   return Result;
-end Rounding;
+         S_10 := 10 ** Scale;
+         R := abs (I rem S_10);
+         I := (I / S_10) * S_10;
+
+         if R >= 5 * 10 ** (Scale - 1) then
+            I := I + Sign * S_10;
+         end if;
+
+         return Item_Type'Base'Fixed_Value (I);
+      else
+         return Number;
+      end if;
+   end Round_To_Int;
 
    ------------
    -- Format --
@@ -291,7 +243,7 @@ end Rounding;
    begin
       if Initial_Width_After = 0 then
          if Strip_Trailing_Zeroes then
-            Item := Rounding (Value, 0);
+            Item := Round_To_Int (Value);
          end if;
 
          Width_After := Item_Type_IO.Default_Aft;
@@ -325,12 +277,7 @@ end Rounding;
       end if;
 
       Real_Width := Last - Pre_First;
-
-      if Initial_Width < Real_Width then
-         Width := Real_Width;
-      else
-         Width := Initial_Width;
-      end if;
+      Width := Integer'Max (Initial_Width, Real_Width);
 
       declare
          S : String (1 .. Width);

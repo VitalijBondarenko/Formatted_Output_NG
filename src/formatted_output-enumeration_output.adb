@@ -87,12 +87,7 @@ package body Formatted_Output.Enumeration_Output is
       end case;
 
       Real_Width := Past_Last;
-
-      if Initial_Width < Real_Width then
-         Width := Real_Width;
-      else
-         Width := Initial_Width;
-      end if;
+      Width := Integer'Max (Initial_Width, Real_Width);
 
       declare
          S : String (1 .. Width);
