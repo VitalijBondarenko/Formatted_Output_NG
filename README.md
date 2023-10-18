@@ -28,5 +28,5 @@ Documentation can be found in the file `doc/manual.txt`.
 
 License
 -------
-AdaNLS library released under the terms of the MIT License.
+The library released under the terms of the MIT License.
 For details, see the `COPYING` file.
