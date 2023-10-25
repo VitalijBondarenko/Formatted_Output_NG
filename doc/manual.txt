@@ -17,20 +17,25 @@ Format sequences for strings
 %[flags][<width>]s
 
 Flag characters can be:
-   +   The converted value is to be right adjusted on the field boundary.
-       (This is default.)
-   -   The converted value is to be left adjusted on the field boundary.
-       (The default is right justification.)
-   *   The converted value is to be center adjusted on the field boundary.
-       (The default is right justification.)
+   +, >   The converted value is to be right adjusted on the field boundary.
+          (The default is left justification.)
+   -, <   The converted value is to be left adjusted on the field boundary.
+          (This is default.)
+   ^      The converted value is to be center adjusted on the field boundary.
+          (The default is left justification.)
 
-<width> is decimal number specifying minimal field width.
+<width>:
+   number   Decimal number specifying minimal field width.
+   *        The width is not specified in the format string, but as an
+            additional integer value argument preceding the argument that has
+            to be formatted.
 
 Examples:
    +"%s" & "Hello"                      "Hello"
    +"%9s" & "Hello"                     "    Hello"
+   +"%*s" & 9 & "Hello"                 "    Hello"
    +"%-7s" & "Hello"                    "Hello  "
-   +"%*11s" & "Hello"                   "   Hello   "
+   +"%^11s" & "Hello"                   "   Hello   "
 
 --------------------------------------
 Format sequences for enumeration types
@@ -38,14 +43,18 @@ Format sequences for enumeration types
 %[flags][<width>](c|l|u|m)
 
 Flag characters can be:
-   +   The converted value is to be right adjusted on the field boundary.
-       (This is default.)
-   -   The converted value is to be left adjusted on the field boundary.
-       (The default is right justification.)
-   *   The converted value is to be center adjusted on the field boundary.
-       (The default is right justification.)
+   +, >   The converted value is to be right adjusted on the field boundary.
+          (This is default.)
+   -, <   The converted value is to be left adjusted on the field boundary.
+          (The default is right justification.)
+   ^      The converted value is to be center adjusted on the field boundary.
+          (The default is right justification.)
 
-<width> is decimal number specifying minimum field width.
+<width>:
+   number   Decimal number specifying minimal field width.
+   *        The width is not specified in the format string, but as an
+            additional integer value argument preceding the argument that has
+            to be formatted.
 
 Format specifier can be:
    c   convert capitalized.
@@ -57,7 +66,8 @@ Examples:
    +"%u" & Red                          "RED"
    +"%9u" & Red                         "      RED"
    +"%-7c" & Red                        "Red    "
-   +"%*11l" & Red                       "    red    "
+   +"%^11l" & Red                       "    red    "
+   +"%^*l" & 11 & Red                   "    red    "
    +"%m" & BLACK_WHITE                  "Black_White"
 
 ----------------------------------------------
@@ -66,21 +76,25 @@ Format sequences for integer and modular types
 %[flags][<width>](d|x|X|o|b)
 
 Flag characters can be:
-   -   The converted value is to be left adjusted on the field boundary.
-       (The default is right justification.)
-   *   The converted value is to be center adjusted on the field boundary.
-       (The default is right justification.)
-   +   A sign (+ or -) should always be placed before a number produced by a
-       signed conversion. By default, a sign is used only for negative numbers.
-   #   Used with o, x or X specifiers the value is use with Base in C style.
-   ~   As above, but using Ada style based <base>#<number>#
-   0   The value should be zero padded.
-   _   The output is to be grouped with grouping character '_'.
-       Group size is 3 for Base = 10 and 4 for other.
-   '   For decimal conversion (d) the output is to be grouped with thousands'
-       grouping characters if the locale information indicates any.
+   -, <   The converted value is to be left adjusted on the field boundary.
+          (The default is right justification.)
+   ^      The converted value is to be center adjusted on the field boundary.
+          (The default is right justification.)
+   +      A sign (+ or -) should always be placed before a number produced by a
+          signed conversion. By default, a sign is used only for negative numbers.
+   #      Used with o, x or X specifiers the value is use with Base in C style.
+   ~      As above, but using Ada style based <base>#<number>#
+   0      The value should be zero padded.
+   _      The output is to be grouped with grouping character '_'.
+          Group size is 3 for Base = 10 and 4 for other.
+   '      For decimal conversion (d) the output is to be grouped with thousands'
+          grouping characters if the locale information indicates any.
 
-<width> is decimal number specifying minimum field width.
+<width>:
+   number   Decimal number specifying minimal field width.
+   *        The width is not specified in the format string, but as an
+            additional integer value argument preceding the argument that has
+            to be formatted.
 
 Format specifier can be:
    d   Convert as decimal.
@@ -97,8 +111,8 @@ Examples:
    +"%_b" & 123                         "111_1011"
    +"%8X" & 123                         "      7B"
    +"%08x" & 123                        "0000007b"
-   +"%*07d" & 123                       "00123  "
-   +"%*08d" & -123                      "-00123  "
+   +"%^7d" & 123                        "  123  "
+   +"%0*d" & 8 & -123                   "-0000123"
 
 -----------------------------------------
 Format sequences for floating point types
@@ -106,20 +120,28 @@ Format sequences for floating point types
 %[flags][<width>[.<width_aft>]](e|f|g)
 
 Flag characters can be:
-   -   The converted value is to be left adjusted on the field boundary.
-       (The default is right justification.)
-   *   The converted value is to be center adjusted on the field boundary.
-       (The default is right justification.)
-   +   A sign (+ or -) should always be placed before a number produced by a
-       signed conversion. By default, a sign is used only for negative numbers.
-   0   The value should be zero padded.
-   _   The output is to be grouped with grouping character '_'. Group size is 3.
-   '   The output is to be grouped with thousands' grouping characters if the
-       locale information indicates any.
+   -, <   The converted value is to be left adjusted on the field boundary.
+          (The default is right justification.)
+   ^      The converted value is to be center adjusted on the field boundary.
+          (The default is right justification.)
+   +      A sign (+ or -) should always be placed before a number produced by a
+          signed conversion. By default, a sign is used only for negative numbers.
+   0      The value should be zero padded.
+   _      The output is to be grouped with grouping character '_'. Group size is 3.
+   '      The output is to be grouped with thousands' grouping characters if the
+          locale information indicates any.
 
-<width> is decimal number specifying minimal field width.
+<width>:
+   number   Decimal number specifying minimal field width.
+   *        The width is not specified in the format string, but as an
+            additional integer value argument preceding the argument that has
+            to be formatted.
 
-<width_aft> is decimal number specifying number of digits after decimal point.
+.<width_aft>:
+   .number  Decimal number specifying number of digits after decimal point.
+   .*       The precision is not specified in the format string, but as an
+            additional integer value argument preceding the argument that has
+            to be formatted.
 
 Format specifier can be:
    e   Convert to exponential representation. Uses the letter 'e' (lowercase).
@@ -137,6 +159,7 @@ Examples:
    +"%010.3e" & 1234.5                  "01.235e+03"
    +"%010.3f" & 1234.5                  "001234.500"
    +"%_010.3g" & 1234.5                 "00_001_234.5"
+   +"'%0*.*f'" & 10 & 2 & 23.67768      "0000023.68"
 
 --------------------------------------
 Format sequences for fixed point types
@@ -144,20 +167,28 @@ Format sequences for fixed point types
 %[flags][<width>[.<width_aft>]](f|g)
 
 Flag characters can be:
-   -   The converted value is to be left adjusted on the field boundary.
-       (The default is right justification.)
-   *   The converted value is to be center adjusted on the field boundary.
-       (The default is right justification.)
-   +   A sign (+ or -) should always be placed before a number produced by a
-       signed conversion. By default, a sign is used only for negative numbers.
-   0   The value should be zero padded.
-   _   The output is to be grouped with grouping character '_'. Group size is 3.
-   '   The output is to be grouped with thousands' grouping characters if the
-       locale information indicates any.
+   -, <   The converted value is to be left adjusted on the field boundary.
+          (The default is right justification.)
+   ^      The converted value is to be center adjusted on the field boundary.
+          (The default is right justification.)
+   +      A sign (+ or -) should always be placed before a number produced by a
+          signed conversion. By default, a sign is used only for negative numbers.
+   0      The value should be zero padded.
+   _      The output is to be grouped with grouping character '_'. Group size is 3.
+   '      The output is to be grouped with thousands' grouping characters if the
+          locale information indicates any.
 
-<width> is decimal number specifying minimal field width.
+<width>:
+   number   Decimal number specifying minimal field width.
+   *        The width is not specified in the format string, but as an
+            additional integer value argument preceding the argument that has
+            to be formatted.
 
-<width_aft> is decimal number specifying number of digits after decimal point.
+.<width_aft>:
+   .number  Decimal number specifying number of digits after decimal point.
+   .*       The precision is not specified in the format string, but as an
+            additional integer value argument preceding the argument that has
+            to be formatted.
 
 Format specifier can be:
    f   Convert to decimal notation in the style [-]ddd.ddd..
