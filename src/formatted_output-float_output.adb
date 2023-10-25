@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -373,7 +373,8 @@ package body Formatted_Output.Float_Output is
                when '+'        =>
                   Force_Sign := True;
 
-               when '-' | '*'  =>
+               when '-' | '<'
+                  | '>' | '^'  =>
                   if Justification_Changed or else Digit_Occured then
                      raise Format_Error;
                   end if;
@@ -381,12 +382,10 @@ package body Formatted_Output.Float_Output is
                   Justification_Changed := True;
 
                   case Element (Fmt_Copy, I) is
-                     when '-'    =>
-                        Justification := Left;
-                     when '*'    =>
-                        Justification := Center;
-                     when others =>
-                        null;
+                     when '-' | '<' => Justification := Left;
+                     when '>'       => Justification := Right;
+                     when '^'       => Justification := Center;
+                     when others    => null;
                   end case;
 
                when '.'        =>

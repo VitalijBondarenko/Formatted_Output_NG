@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -330,6 +330,7 @@ package body Formatted_Output.Integer_Output is
       Base_Style            : Base_Style_Kind := None;
       Digit_Groups          : Digit_Grouping := None;
       Fmt_Copy              : Unbounded_String;
+      After_Point_Ignore    : Boolean := False;
    begin
       if Command_Start /= 0 then
          Fmt_Copy := Unbounded_String (Fmt);
@@ -393,7 +394,8 @@ package body Formatted_Output.Integer_Output is
                when '~'        =>
                   Base_Style := Ada_Base_Style;
                   
-               when '-' | '*'  =>
+               when '-' | '<'
+                  | '>' | '^'  =>
                   if Justification_Changed or else Digit_Occured then
                      raise Format_Error;
                   end if;
@@ -401,23 +403,36 @@ package body Formatted_Output.Integer_Output is
                   Justification_Changed := True;
                   
                   case Element (Fmt_Copy, I) is
-                     when '-'    =>
-                        Justification := Left;
-                     when '*'    =>
-                        Justification := Center;
-                     when others =>
-                        null;
+                     when '-' | '<' => Justification := Left;
+                     when '>'       => Justification := Right;
+                     when '^'       => Justification := Center;
+                     when others    => null;
                   end case;
                   
-               when '0' .. '9' =>
-                  Digit_Occured := True;
-                  
-                  if Width = 0 and then Element (Fmt_Copy, I) = '0' then
-                     Leading_Zero := True;
+               when '*'        =>
+                  Replace_Slice (Fmt_Copy, I, I, Trim (Value'Img, Both));
+                  return Format_Type (Fmt_Copy);
+
+               when '.'        =>
+                  if Element (Fmt_Copy, I + 1) = '*' then
+                     Replace_Slice
+                       (Fmt_Copy, I + 1, I + 1, Trim (Value'Img, Both));
+                     return Format_Type (Fmt_Copy);
                   else
-                     Width := Width * 10
-                       + Character'Pos (Element (Fmt_Copy, I))
-                       - Character'Pos ('0');
+                     After_Point_Ignore := True;
+                  end if;
+                  
+               when '0' .. '9' =>
+                  if not After_Point_Ignore then
+                     Digit_Occured := True;
+                  
+                     if Width = 0 and then Element (Fmt_Copy, I) = '0' then
+                        Leading_Zero := True;
+                     else
+                        Width := Width * 10
+                          + Character'Pos (Element (Fmt_Copy, I))
+                          - Character'Pos ('0');
+                     end if;
                   end if;
                   
                when others     =>

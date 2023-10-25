@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -131,7 +131,7 @@ package body Formatted_Output is
       Width                 : Integer := 0;
       Digit_Occured         : Boolean := False;
       Justification_Changed : Boolean := False;
-      Justification         : Alignment := Right;
+      Justification         : Alignment := Left;
       Fmt_Copy              : Unbounded_String;
    begin
       if Command_Start /= 0 then
@@ -145,7 +145,7 @@ package body Formatted_Output is
                      Format_String (Value, Width, Justification));
                   return Format_Type (Fmt_Copy);
                   
-               when '-' | '+' | '*' =>
+               when '-' | '+' | '<' | '>' | '^' =>
                   if Justification_Changed or else Digit_Occured then
                      raise Format_Error;
                   end if;
@@ -153,14 +153,10 @@ package body Formatted_Output is
                   Justification_Changed := True;
                   
                   case Element (Fmt_Copy, I) is
-                     when '-'    => 
-                        Justification := Left;
-                     when '+'    => 
-                        Justification := Right;
-                     when '*'    => 
-                        Justification := Center;
-                     when others => 
-                        null;
+                     when '-' | '<' => Justification := Left;
+                     when '+' | '>' => Justification := Right;
+                     when '^'       => Justification := Center;
+                     when others    => null;
                   end case;
                   
                when '0' .. '9'      =>
@@ -214,6 +210,15 @@ package body Formatted_Output is
       Put_Line (File, To_String (Fmt));
    end Put_Line;
 
+   ------------------
+   -- Image_String --
+   ------------------
+   
+   function Image_String (Fmt : Format_Type) return String is
+   begin
+      return Ada.Strings.Unbounded.To_String (Unbounded_String (Fmt));
+   end Image_String;
+   
    --------------------------
    -- Scan_To_Percent_Sign --
    --------------------------

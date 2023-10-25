@@ -1,3 +1,31 @@
+------------------------------------------------------------------------------
+--                                                                          --
+-- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+--                                                                          --
+------------------------------------------------------------------------------
+--                                                                          --
+-- The MIT License (MIT)                                                    --
+--                                                                          --
+-- Permission is hereby granted, free of charge, to any person obtaining a  --
+-- copy of this software and associated documentation files (the            --
+-- "Software"), to deal in the Software without restriction, including      --
+-- without limitation the rights to use, copy, modify, merge, publish,      --
+-- distribute, sublicense, and/or sell copies of the Software, and to       --
+-- permit persons to whom the Software is furnished to do so, subject to    --
+-- the following conditions:                                                --
+--                                                                          --
+-- The above copyright notice and this permission notice shall be included  --
+-- in all copies or substantial portions of the Software.                   --
+--                                                                          --
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS  --
+-- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF               --
+-- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.   --
+-- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY     --
+-- CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,     --
+-- TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE        --
+-- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                   --
+------------------------------------------------------------------------------
+
 with Ada.Text_IO;
 with Ada.Calendar;
 with Interfaces;                           use Interfaces;
@@ -99,7 +127,7 @@ procedure Formatted_Output_Demo is
      new Formatted_Output.Modular_Output (Interfaces.Unsigned_64);
    use Unsigned_Output;
 
-   type Money is delta 0.01 digits 18;
+   type Money is delta 0.01 digits 17;
 
    package Money_Output is new Formatted_Output.Decimal_Output (Money);
    use Money_Output;
@@ -129,10 +157,18 @@ begin
       & Unsigned_64'First & Unsigned_64'Last);
    Ada.Text_IO.New_Line;
 
-   Formatted_Output.Put_Line
-     (+"Money type range (%s):\n\t%+_35f .. %-+_35f"
-      & "type Money is delta 0.01 digits 18"
-      & Money'First & Money'Last);
+   declare
+      L : constant String := Get_Locale;
+      D : constant Integer := Money'Digits;
+      S : constant Money := 1.0 / (10 ** Money'Scale);
+   begin
+      Set_Locale (Locale => "POSIX");
+      Formatted_Output.Put_Line
+        (+"Money type range (type Money is delta %f digits %d):\n\t%+_35f .. %-+_35f"
+         & S & D & Money'First & Money'Last);
+      Set_Locale (Locale => L);
+   end;
+
    Ada.Text_IO.New_Line;
 
    Show_Enum_Style;

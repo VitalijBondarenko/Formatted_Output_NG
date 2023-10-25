@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2022 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -99,6 +99,9 @@ package Formatted_Output is
 
    Filler : constant Character := ' ';
    --  Filling character, used when padding strings
+
+   function Image_String (Fmt : Format_Type) return String;
+   --  Returns formatting sequence in Fmt as string
 
 private
 
