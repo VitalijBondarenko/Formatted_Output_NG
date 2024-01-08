@@ -42,8 +42,6 @@ package body Formatted_Output.Integer_Output is
 
    type Neg_Number_Represent is (Sign_Magnitude, Twos_Complement);
 
-   subtype Base_Type is Integer range 2 .. 16;
-
    generic
       type Int is range <>;
       type Uns is mod <>;
@@ -62,7 +60,7 @@ package body Formatted_Output.Integer_Output is
      (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
-      Base          : Integer;
+      Base          : Base_Type;
       Justification : Alignment;
       Force_Sign    : Boolean;
       Base_Style    : Base_Style_Kind;
@@ -195,7 +193,7 @@ package body Formatted_Output.Integer_Output is
      (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
-      Base          : Integer;
+      Base          : Base_Type;
       Justification : Alignment;
       Force_Sign    : Boolean;
       Base_Style    : Base_Style_Kind;

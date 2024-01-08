@@ -46,7 +46,7 @@ package body Formatted_Output.Modular_Output is
      (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
-      Base          : Integer;
+      Base          : Base_Type;
       Justification : Alignment;
       Base_Style    : Base_Style_Kind;
       Digit_Groups  : Digit_Grouping) return String;
@@ -81,7 +81,7 @@ package body Formatted_Output.Modular_Output is
      (Value         : Item_Type'Base;
       Initial_Width : Integer;
       Leading_Zero  : Boolean;
-      Base          : Integer;
+      Base          : Base_Type;
       Justification : Alignment;
       Base_Style    : Base_Style_Kind;
       Digit_Groups  : Digit_Grouping) return String

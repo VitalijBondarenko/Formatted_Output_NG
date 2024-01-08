@@ -39,16 +39,23 @@ package body Formatted_Output.Float_Output is
 
    Maximal_Float_Item_Length : constant := 5200;
 
-   function Format
-     (Value                 : Item_Type'Base;
-      Initial_Width         : Integer;
-      Initial_Width_After   : Integer;
-      Strip_Trailing_Zeroes : Boolean;
-      Leading_Zero          : Boolean;
-      Width_Exp             : Integer;
-      Justification         : Alignment;
-      Force_Sign            : Boolean;
-      Digit_Groups          : Digit_Grouping) return String;
+   type Hex_Float_Notation is (Decimal_Notation, E_Notation, P_Notation);
+
+   function Dec_To_Hex
+     (Number   : Item_Type;
+      Notation : Hex_Float_Notation := Decimal_Notation) return String;
+
+   function Integer_Part (Number : Item_Type) return Item_Type'Base;
+   --  Returns the integer part of a real Number.
+
+   function Fraction_Part (Number : Item_Type) return Item_Type'Base;
+   --  Returns the fractional part of a real Number.
+
+   function Int_Part_To_Str
+     (Value : Item_Type'Base; Base : Base_Type) return String;
+
+   function Frac_Part_To_Str
+     (Value : Item_Type'Base; Base : Base_Type) return String;
 
    function Set_Valid_Decimal_Point
      (Text_Value : String;
@@ -65,6 +72,220 @@ package body Formatted_Output.Float_Output is
       Separator  : String;
       Dec_Point  : String;
       Group_Size : Integer) return String;
+
+   function Format
+     (Value                 : Item_Type'Base;
+      Initial_Width         : Integer;
+      Initial_Width_After   : Integer;
+      Strip_Trailing_Zeroes : Boolean;
+      Leading_Zero          : Boolean;
+      Width_Exp             : Integer;
+      Base                  : Base_Type;
+      Justification         : Alignment;
+      Force_Sign            : Boolean;
+      Base_Style            : Base_Style_Kind;
+      Digit_Groups          : Digit_Grouping) return String;
+
+   ----------------
+   -- Dec_To_Hex --
+   ----------------
+
+   function Dec_To_Hex
+     (Number   : Item_Type;
+      Notation : Hex_Float_Notation := Decimal_Notation) return String
+   is
+      Base : constant Base_Type := 16;
+      S    : Unbounded_String :=
+        To_Unbounded_String (if Number < 0.0 then "-" else "");
+      Exp  : Natural := 0;
+      X    : Item_Type'Base := 0.0;
+      B    : constant Item_Type := Item_Type (Base);
+      --  High : Natural := 0;
+
+      procedure Make_Decimal_Notation;
+      procedure Make_E_Notation;
+      procedure Make_P_Notation;
+
+      ---------------------------
+      -- Make_Decimal_Notation --
+      ---------------------------
+
+      procedure Make_Decimal_Notation is
+      begin
+         S := S
+           & "16#"
+           & Int_Part_To_Str (Integer_Part (Number), Base)
+           & "."
+           & Frac_Part_To_Str (Fraction_Part (Number), Base)
+           & "#";
+      end Make_Decimal_Notation;
+
+      ---------------------
+      -- Make_E_Notation --
+      ---------------------
+
+      procedure Make_E_Notation is
+      begin
+         X := abs Number;
+
+         if X = 0.0 then
+            S := S & "16#0.0#E+00";
+         elsif X >= 1.0 then
+            while X >= B loop
+               X := X / B;
+               Exp := Exp + 1;
+            end loop;
+
+            S := S & "16#"
+              & Int_Part_To_Str (Integer_Part (X), Base)
+              & "."
+              & Frac_Part_To_Str (Fraction_Part (X), Base)
+              & "#E+" & Exp'Img (2 .. Exp'Img'Last);
+         else
+            while X <= 1.0 loop
+               X := X * B;
+               Exp := Exp + 1;
+            end loop;
+
+            S := S & "16#"
+              & Int_Part_To_Str (Integer_Part (X), Base)
+              & "."
+              & Frac_Part_To_Str (Fraction_Part (X), Base)
+              & "#E-" & Exp'Img (2 .. Exp'Img'Last);
+         end if;
+      end Make_E_Notation;
+
+      ------------
+      -- Make_P --
+      ------------
+
+      procedure Make_P_Notation is
+      begin
+         X := abs Number;
+
+         if X = 0.0 then
+            S := S & "0X0P+0";
+         elsif X >= 1.0 then
+            while X >= 2.0 loop
+               X := X / 2.0;
+               Exp := Exp + 1;
+            end loop;
+
+            S := S & "0X"
+              & Int_Part_To_Str (Integer_Part (X), Base)
+              & "."
+              & Frac_Part_To_Str (Fraction_Part (X), Base)
+              & "P+" & Exp'Img (2 .. Exp'Img'Last);
+         else
+            while X <= 1.0 loop
+               X := X * 2.0;
+               Exp := Exp + 1;
+            end loop;
+
+            S := S & "0X"
+              & Int_Part_To_Str (Integer_Part (X), Base)
+              & "."
+              & Frac_Part_To_Str (Fraction_Part (X), Base)
+              & "P-" & Exp'Img (2 .. Exp'Img'Last);
+         end if;
+      end Make_P_Notation;
+
+   begin  --  Dec_To_Hex
+      case Notation is
+         when Decimal_Notation =>
+            Make_Decimal_Notation;
+         when E_Notation =>
+            Make_E_Notation;
+         when P_Notation =>
+            Make_P_Notation;
+      end case;
+
+      return To_String (S);
+   end Dec_To_Hex;
+
+   ------------------
+   -- Integer_Part --
+   ------------------
+
+   function Integer_Part (Number : Item_Type) return Item_Type'Base is
+      Result : constant Item_Type := Item_Type'Truncation (Number);
+   begin
+      if Number >= 0.0 then
+         return Result;
+      else
+         return Result - 1.0;
+      end if;
+   end Integer_Part;
+
+   -------------------
+   -- Fraction_Part --
+   -------------------
+
+   function Fraction_Part (Number : Item_Type) return Item_Type'Base is
+     (Number - Integer_Part (Number));
+
+   ---------------------
+   -- Int_Part_To_Str --
+   ---------------------
+
+   function Int_Part_To_Str
+     (Value : Item_Type'Base; Base : Base_Type) return String
+   is
+      Digit_Symbols : constant String := "0123456789ABCDEF";
+      Result        : Unbounded_String;
+      Divider       : Item_Type'Base;
+      Quotient      : Item_Type'Base;
+      Remainder     : Item_Type'Base;
+      X             : Item_Type'Base;
+   begin
+      if Value = 0.0 then
+         return "0";
+      else
+         X := abs Value;
+         Quotient := abs Value;
+         Divider := Item_Type (Base);
+
+         while Quotient /= 0.0 loop
+            Quotient := Item_Type'Truncation (X / Divider);
+            Remainder := X - Quotient * Divider ;
+            Result := Digit_Symbols (Natural (Remainder) + 1) & Result;
+            X := Quotient;
+         end loop;
+      end if;
+
+      return To_String (Result);
+   end Int_Part_To_Str;
+
+   ----------------------
+   -- Frac_Part_To_Str --
+   ----------------------
+
+   function Frac_Part_To_Str
+     (Value : Item_Type'Base; Base : Base_Type) return String
+   is
+      Digit_Symbols : constant String := "0123456789ABCDEF";
+      Result        : Unbounded_String;
+      X             : Item_Type'Base;
+      Product       : Item_Type'Base;
+      Multiplier    : Item_Type'Base;
+   begin
+      if Value = 0.0 then
+         return "0";
+      else
+         X := abs Value;
+         Product := abs Value;
+         Multiplier := Item_Type (Base);
+
+         while X /= 0.0 loop
+            Product := X * Multiplier;
+            Result :=
+              Result & Digit_Symbols (Natural (Integer_Part (Product)) + 1);
+            X := Fraction_Part (Product);
+         end loop;
+      end if;
+
+      return To_String (Result);
+   end Frac_Part_To_Str;
 
    -----------------------------
    -- Set_Valid_Decimal_Point --
@@ -173,7 +394,7 @@ package body Formatted_Output.Float_Output is
          Res := Res
            & Separate_Digit_Groups (I, Separator, Group_Size)
            & (if DP > 0 then
-                 --  Dec_Point & Separate_Digit_Groups (F, FS, Group_Size)
+              --  Dec_Point & Separate_Digit_Groups (F, FS, Group_Size)
                  Dec_Point & F
               else "")
            & E;
@@ -193,17 +414,20 @@ package body Formatted_Output.Float_Output is
       Strip_Trailing_Zeroes : Boolean;
       Leading_Zero          : Boolean;
       Width_Exp             : Integer;
+      Base                  : Base_Type;
       Justification         : Alignment;
       Force_Sign            : Boolean;
+      Base_Style            : Base_Style_Kind;
       Digit_Groups          : Digit_Grouping) return String
    is
-      Img         : String (1 .. Maximal_Float_Item_Length);
-      Width       : Integer;
-      Width_After : Integer;
-      Real_Width  : Integer;
-      Pre_First   : Natural := Maximal_Float_Item_Length;
-      Last        : Natural := Maximal_Float_Item_Length;
-      Item        : Item_Type'Base := Value;
+      Img          : String (1 .. Maximal_Float_Item_Length);
+      Width        : Integer;
+      Width_After  : Integer;
+      Real_Width   : Integer;
+      Pre_First    : Natural := Img'Last;
+      Last         : Natural := Img'Last;
+      Item         : Item_Type'Base := Value;
+      Hex_Notation : Hex_Float_Notation := Decimal_Notation;
    begin
       if Initial_Width_After = 0 then
          if Strip_Trailing_Zeroes then
@@ -215,11 +439,26 @@ package body Formatted_Output.Float_Output is
          Width_After := Initial_Width_After;
       end if;
 
-      Put
-        (To   => Img,
-         Item => Item,
-         Aft  => Field (Width_After),
-         Exp  => Field (Width_Exp));
+      if Base = 10 then
+         Put
+           (To   => Img,
+            Item => Item,
+            Aft  => Field (Width_After),
+            Exp  => Field (Width_Exp));
+      else
+         case Base_Style is
+            when None           => Hex_Notation := Decimal_Notation;
+            when C_Base_Style   => Hex_Notation := P_Notation;
+            when Ada_Base_Style => Hex_Notation := E_Notation;
+         end case;
+
+         Move
+           (Source  => Dec_To_Hex (Value, Hex_Notation),
+            Target  => Img,
+            Drop    => Error,
+            Justify => Right,
+            Pad     => ' ');
+      end if;
 
       while Img (Pre_First) /= ' ' loop
          Pre_First := Pre_First - 1;
@@ -255,7 +494,7 @@ package body Formatted_Output.Float_Output is
            (if Digit_Groups = Ada_Grouping_Style then Ada_Dec_Point_Character
             else Decimal_Point_Character);
          G : Integer := 3;
---             (if Digit_Groups = NLS_Style or Base = 10 then 3 else 4);
+         --             (if Digit_Groups = NLS_Style or Base = 10 then 3 else 4);
       begin
          case Digit_Groups is
             when None               =>
@@ -270,8 +509,9 @@ package body Formatted_Output.Float_Output is
             return To_String (T);
          else
             Move
-              (To_String (T),
-               S,
+              (Source  => To_String (T),
+               Target  => S,
+               Drop    => Error,
                Justify => Justification,
                Pad     => Filler);
 
@@ -301,6 +541,7 @@ package body Formatted_Output.Float_Output is
       Force_Sign            : Boolean := False;
       Digit_Groups          : Digit_Grouping := None;
       Fmt_Copy              : Unbounded_String;
+      Base_Style            : Base_Style_Kind := None;
    begin
       if Command_Start /= 0 then
          Fmt_Copy := Unbounded_String (Fmt);
@@ -313,15 +554,18 @@ package body Formatted_Output.Float_Output is
                      To_Lower (
                        Format
                          (Value, Width, Width_After, False, Leading_Zero,
-                          Default_Exp, Justification, Force_Sign, Digit_Groups)));
+                          Default_Exp, 10, Justification, Force_Sign,
+                          None, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
 
                when 'E'        =>
                   Replace_Slice
                     (Fmt_Copy, Command_Start, I,
-                     Format
-                       (Value, Width, Width_After, False, Leading_Zero,
-                        Default_Exp, Justification, Force_Sign, Digit_Groups));
+                     To_Upper (
+                       Format
+                         (Value, Width, Width_After, False, Leading_Zero,
+                          Default_Exp, 10, Justification, Force_Sign,
+                          None, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
 
                when 'f'        =>
@@ -330,13 +574,15 @@ package body Formatted_Output.Float_Output is
                        (Fmt_Copy, Command_Start, I,
                         Format
                           (Value, Width, Width_After, True, Leading_Zero,
-                           0, Justification, Force_Sign, Digit_Groups));
+                           0, 10, Justification, Force_Sign, None,
+                           Digit_Groups));
                   else
                      Replace_Slice
                        (Fmt_Copy, Command_Start, I,
                         Format
                           (Value, Width, Width_After, False, Leading_Zero,
-                           0, Justification, Force_Sign, Digit_Groups));
+                           0, 10, Justification, Force_Sign, None,
+                           Digit_Groups));
                   end if;
 
                   return Format_Type (Fmt_Copy);
@@ -347,21 +593,44 @@ package body Formatted_Output.Float_Output is
                        (Fmt_Copy, Command_Start, I,
                         Format
                           (Value, Width, 1, True, Leading_Zero,
-                           0, Justification, Force_Sign, Digit_Groups));
+                           0, 10, Justification, Force_Sign, None,
+                           Digit_Groups));
                   elsif not After_Point then
                      Replace_Slice
                        (Fmt_Copy, Command_Start, I,
                         Format
                           (Value, Width, Default_Aft, True, Leading_Zero,
-                           0, Justification, Force_Sign, Digit_Groups));
+                           0, 10, Justification, Force_Sign, None,
+                           Digit_Groups));
                   else
                      Replace_Slice
                        (Fmt_Copy, Command_Start, I,
                         Format
                           (Value, Width, Width_After, True, Leading_Zero,
-                           0, Justification, Force_Sign, Digit_Groups));
+                           0, 10, Justification, Force_Sign, None,
+                           Digit_Groups));
                   end if;
 
+                  return Format_Type (Fmt_Copy);
+
+               when 'a'        =>
+                  Replace_Slice
+                    (Fmt_Copy, Command_Start, I,
+                     To_Lower (
+                       Format
+                         (Value, Width, Width_After, False, Leading_Zero,
+                          Default_Exp, 16, Justification, Force_Sign,
+                          Base_Style, Digit_Groups)));
+                  return Format_Type (Fmt_Copy);
+
+               when 'A'        =>
+                  Replace_Slice
+                    (Fmt_Copy, Command_Start, I,
+                     To_Upper (
+                       Format
+                         (Value, Width, Width_After, False, Leading_Zero,
+                          Default_Exp, 16, Justification, Force_Sign,
+                          Base_Style, Digit_Groups)));
                   return Format_Type (Fmt_Copy);
 
                when '_'        =>
@@ -372,6 +641,12 @@ package body Formatted_Output.Float_Output is
 
                when '+'        =>
                   Force_Sign := True;
+
+               when '#'        =>
+                  Base_Style := C_Base_Style;
+
+               when '~'        =>
+                  Base_Style := Ada_Base_Style;
 
                when '-' | '<'
                   | '>' | '^'  =>

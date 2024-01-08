@@ -124,6 +124,8 @@ private
    
    type Digit_Grouping is (None, Ada_Grouping_Style, NLS_Grouping_Style);
 
+   subtype Base_Type is Integer range 2 .. 16;
+
    type Base_Style_Kind is (None, C_Base_Style, Ada_Base_Style);
 
    function Separate_Digit_Groups
