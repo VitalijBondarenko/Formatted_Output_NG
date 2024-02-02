@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2024 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -31,33 +31,11 @@ generic
 
 package Formatted_Output.Decimal_Output is
 
-   function "&" (Fmt : Format_Type; Value : Item_Type'Base) return Format_Type;
+   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type;
    --  Replaces leftmost formatting sequence in Fmt with formatted Value image,
    --  then returns Fmt. Raises exception Format_Error when invalid formatting
    --  sequence is found or no formatting sequence found at all.
    --
-   --  Format sequences for decimal types:
-   --
-   --  %[flags][<width>[.<width_aft>]](f|g)
-   --
-   --  Flag characters can be:
-   --     -   The converted value is to be left adjusted on the field boundary.
-   --         (The default is right justification.)
-   --     *   The converted value is to be center adjusted on the field boundary.
-   --         (The default is right justification.)
-   --     +   A sign (+ or -) should always be placed before a number produced by a
-   --         signed conversion. By default, a sign is used only for negative numbers.
-   --     0   The value should be zero padded.
-   --     _   The output is to be grouped with grouping character '_'. Group size is 3.
-   --     '   The output is to be grouped with thousands' grouping characters if the
-   --         locale information indicates any.
-   --
-   --  <width> is decimal number specifying minimal field width.
-   --
-   --  <width_aft> is decimal number specifying number of digits after decimal point.
-   --
-   --  Format specifier can be:
-   --     f   Convert to decimal notation in the style [-]ddd.ddd.
-   --     g   Convert to shortest representation without any trailing zeroes.
+   --  Format sequences for decimal types are the same as for float types.
 
 end Formatted_Output.Decimal_Output;

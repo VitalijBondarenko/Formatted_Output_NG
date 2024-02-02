@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2024 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -31,35 +31,62 @@ generic
 
 package Formatted_Output.Float_Output is
 
-   function "&" (Fmt : Format_Type; Value : Item_Type'Base) return Format_Type;
+   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type;
    --  Replaces leftmost formatting sequence in Fmt with formatted Value image,
    --  then returns Fmt. Raises exception Format_Error when invalid formatting
    --  sequence is found or no formatting sequence found at all.
    --
    --  Format sequences for floating point types:
    --
-   --  %[flags][<width>[.<width_aft>]](e|f|g)
+   --  %[flags][width][.precision](f|F|g|G|e|E|a|A)
    --
    --  Flag characters can be:
-   --     -   The converted value is to be left adjusted on the field boundary.
-   --         (The default is right justification.)
-   --     *   The converted value is to be center adjusted on the field boundary.
-   --         (The default is right justification.)
-   --     +   A sign (+ or -) should always be placed before a number produced by a
-   --         signed conversion. By default, a sign is used only for negative numbers.
-   --     0   The value should be zero padded.
-   --     _   The output is to be grouped with grouping character '_'. Group size is 3.
-   --     '   The output is to be grouped with thousands' grouping characters if the
-   --         locale information indicates any.
+   --     <, -   The converted value is to be left adjusted on the field boundary.
+   --            (The default is right justification.)
+   --     >      The converted value is to be right adjusted on the field boundary.
+   --            (This is default justification.)
+   --     ^      The converted value is to be center adjusted on the field boundary.
+   --            (The default is right justification.)
+   --     +      A sign (+ or -) should always be placed before a number produced
+   --            by a signed conversion. By default, a sign is used only for
+   --            negative numbers.
+   --     #      Used with a or A specifiers the value is use with Base in C style.
+   --     ~      As above, but using Ada style base <base>#<number>#.
+   --     0      The value should be zero padded.
+   --     _      The output is to be grouped with grouping character '_'.
+   --            Group size is 3 for decimal notation and 4 for hexadecimal notation.
+   --     '      The output is to be grouped with thousands' grouping characters
+   --            if the locale information indicates any.
    --
-   --  <width> is decimal number specifying minimal field width.
+   --  Width:
+   --     number   Integer number specifying minimal field width.
+   --     *        The width is not specified in the format string, but as an
+   --              additional integer value argument preceding the argument
+   --              that has to be formatted.
    --
-   --  <width_aft> is decimal number specifying number of digits after decimal point.
+   --  Precision:
+   --     .number  Integer number specifying number of digits after decimal point.
+   --     .*       The precision is not specified in the format string, but as
+   --              an additional integer value argument preceding the argument
+   --              that has to be formatted.
    --
    --  Format specifier can be:
-   --     e   Convert to exponential representation. Uses the letter 'e' (lowercase).
-   --     E   Convert to exponential representation. Uses the letter 'E' (uppercase).
-   --     f   Convert without exponent field.
-   --     g   Convert to shortest representation without any trailing zeroes.
+   --     f, F
+   --         Converts floating-point number to the decimal notation in the
+   --         style [-]ddd.ddd.
+   --     g   Converts real number to the decimal notation in the style f or e.
+   --         Trailing zeros are removed from the fractional part of the result.
+   --         If the precision is zero, it is treated as 1. Style e is used if
+   --         the exponent from its conversion is less than -4 or greater than
+   --         or equal to the precision.
+   --     G   As above, but style F or E is used.
+   --     e   Converts floating-point number to the decimal exponent notation.
+   --         The style [-]d.ddde±dd is used.
+   --     E   As above, but using uppercase letter E.
+   --     a   Converts floating-point number to the hexadecimal notation.
+   --         For the ~ flag style [-]16#h.hhhh#e±dd is used.
+   --         For the # flag style [-]0xh.hhhhp±d is used.
+   --         Otherwise the style [-]16#hhh.hhhh# is used.
+   --     A   As above, but using uppercase letters.
 
 end Formatted_Output.Float_Output;

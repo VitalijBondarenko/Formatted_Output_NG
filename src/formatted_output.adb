@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2024 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -26,17 +26,19 @@
 -- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                   --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO;          use Ada.Text_IO;
-with Ada.Integer_Text_IO;  use Ada.Integer_Text_IO;
-with Ada.Float_Text_IO;    use Ada.Float_Text_IO;
-with Ada.Strings;          use Ada.Strings;
-with Ada.Strings.Fixed;    use Ada.Strings.Fixed;
-with Ada.Strings.Maps;     use Ada.Strings.Maps;
-with Interfaces.C.Strings; use Interfaces.C.Strings;
+with Ada.Text_IO;         use Ada.Text_IO;
+with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
+with Ada.Float_Text_IO;   use Ada.Float_Text_IO;
+with Ada.Strings;         use Ada.Strings;
+with Ada.Strings.Fixed;   use Ada.Strings.Fixed;
+with Ada.Strings.Maps;    use Ada.Strings.Maps;
 
-with L10n.Localeinfo;      use L10n.Localeinfo;
+with Formatted_Output.Utils; use Formatted_Output.Utils;
 
 package body Formatted_Output is
+
+   function Format_String
+     (Value : String; Fmt_Spec : Format_Data_Record) return String;
 
    ---------------
    -- To_Format --
@@ -63,23 +65,19 @@ package body Formatted_Output is
       while I < Length (Fmt_Copy) loop
          if Element (Fmt_Copy, I) = '\' then
             case Element (Fmt_Copy, I + 1) is
-               when 'n'    => 
+               when 'n'    =>
                   Replace_Slice (Fmt_Copy, I, I + 1, LF);
-                  --  I := I + 1;
-                  --  Uncomment line above, if your system using two-byte
-                  --  representation of the next line character. Example of
-                  --  such system is EZ2LOAD.
-               when 'r'    => 
+               when 'r'    =>
                   Replace_Slice (Fmt_Copy, I, I + 1, CR);
-               when 'b'    => 
+               when 'b'    =>
                   Replace_Slice (Fmt_Copy, I, I + 1, BS);
-               when 't'    => 
+               when 't'    =>
                   Replace_Slice (Fmt_Copy, I, I + 1, HT);
-               when 'f'    => 
+               when 'f'    =>
                   Replace_Slice (Fmt_Copy, I, I + 1, FF);
-               when '\'    => 
+               when '\'    =>
                   Delete (Fmt_Copy, I, I);
-               when others => 
+               when others =>
                   null;
             end case;
          elsif Element (Fmt_Copy, I) = '%' then
@@ -87,7 +85,8 @@ package body Formatted_Output is
                when '%'    =>
                   Delete (Fmt_Copy, I, I);
                when others =>
-                  raise Format_Error;
+                  Raise_Format_Error
+                    (Unbounded_Slice (Fmt, I, Length (Fmt)));
             end case;
          end if;
          
@@ -102,24 +101,17 @@ package body Formatted_Output is
    -------------------
 
    function Format_String
-     (Value         : String;
-      Initial_Width : Integer;
-      Justification : Alignment) return String
+     (Value : String; Fmt_Spec : Format_Data_Record) return String
    is
-      Width : Integer;
+      S : String (1 .. Integer'Max (Fmt_Spec.Width, Value'Length));
    begin
-      if Initial_Width < Value'Length then
-         Width := Value'Length;
-      else
-         Width := Initial_Width;
-      end if;
-      
-      declare
-         S : String (1 .. Width);
-      begin
-         Move (Value, S, Justify => Justification, Pad => Filler);
-         return S;
-      end;
+      Move
+        (Source  => Value,
+         Target  => S,
+         Drop    => Error,
+         Justify => Fmt_Spec.Align,
+         Pad     => Filler);
+      return S;
    end Format_String;
 
    ---------
@@ -127,51 +119,45 @@ package body Formatted_Output is
    ---------
 
    function "&" (Fmt : Format_Type; Value : String) return Format_Type is
-      Command_Start         : constant Integer := Scan_To_Percent_Sign (Fmt);
-      Width                 : Integer := 0;
-      Digit_Occured         : Boolean := False;
-      Justification_Changed : Boolean := False;
-      Justification         : Alignment := Left;
-      Fmt_Copy              : Unbounded_String;
+      Fmt_Spec : Format_Data_Record;
+      Fmt_Copy : Unbounded_String;
    begin
-      if Command_Start /= 0 then
-         Fmt_Copy := Unbounded_String (Fmt);
-         
-         for I in Command_Start + 1 .. Length (Fmt_Copy) loop
-            case Element (Fmt_Copy, I) is
-               when 's'             =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format_String (Value, Width, Justification));
-                  return Format_Type (Fmt_Copy);
-                  
-               when '-' | '+' | '<' | '>' | '^' =>
-                  if Justification_Changed or else Digit_Occured then
-                     raise Format_Error;
-                  end if;
-                  
-                  Justification_Changed := True;
-                  
-                  case Element (Fmt_Copy, I) is
-                     when '-' | '<' => Justification := Left;
-                     when '+' | '>' => Justification := Right;
-                     when '^'       => Justification := Center;
-                     when others    => null;
-                  end case;
-                  
-               when '0' .. '9'      =>
-                  Digit_Occured := True;
-                  Width := Width * 10
-                    + Character'Pos (Element (Fmt_Copy, I))
-                    - Character'Pos ('0');
-                  
-               when others          =>
-                  raise Format_Error;
-            end case;
-         end loop;
+      Fmt_Spec.Value_Kind := V_Str;
+      Fmt_Spec.Align := Left;
+      Parse_Format (Fmt, Fmt_Spec);
+      Fmt_Copy := Unbounded_String (Fmt);
+
+      if Fmt_Spec.Precision = Undefined then
+         Replace_Slice
+           (Fmt_Copy, Fmt_Spec.Spec_Start, Fmt_Spec.Spec_End,
+            Format_String (Value, Fmt_Spec));
+      else
+         Replace_Slice
+           (Fmt_Copy, Fmt_Spec.Spec_Start, Fmt_Spec.Spec_End,
+            Format_String
+              (Value (Value'First .. Value'First + Fmt_Spec.Precision - 1),
+               Fmt_Spec));
       end if;
       
-      raise Format_Error;
+      return Format_Type (Fmt_Copy);
+   end "&";
+
+   ---------
+   -- "&" --
+   ---------
+
+   function "&" (Fmt : Format_Type; Value : Character) return Format_Type is
+      Fmt_Spec : Format_Data_Record;
+      Fmt_Copy : Unbounded_String;
+   begin
+      Fmt_Spec.Value_Kind := V_Char;
+      Parse_Format (Fmt, Fmt_Spec);
+      Fmt_Copy := Unbounded_String (Fmt);
+      
+      Replace_Slice
+        (Fmt_Copy, Fmt_Spec.Spec_Start, Fmt_Spec.Spec_End,
+         Format_String (String'(1 => Value), Fmt_Spec));
+      return Format_Type (Fmt_Copy);
    end "&";
 
    ---------
@@ -210,292 +196,27 @@ package body Formatted_Output is
       Put_Line (File, To_String (Fmt));
    end Put_Line;
 
-   ------------------
-   -- Image_String --
-   ------------------
+   ---------------
+   -- Get_Image --
+   ---------------
    
-   function Image_String (Fmt : Format_Type) return String is
+   function Get_Image (Fmt : Format_Type) return String is
    begin
       return Ada.Strings.Unbounded.To_String (Unbounded_String (Fmt));
-   end Image_String;
+   end Get_Image;
    
-   --------------------------
-   -- Scan_To_Percent_Sign --
-   --------------------------
-
-   function Scan_To_Percent_Sign (Fmt : Format_Type) return Integer is
-      I : Natural := 1;
-   begin
-      while I < Length (Fmt) loop
-         if Element (Fmt, I) = '%' then
-            if Element (Fmt, I + 1) /= '%' then
-               return I;
-            else
-               I := I + 1;
-            end if;
-         end if;
-         
-         I := I + 1;
-      end loop;
-      
-      return 0;
-   end Scan_To_Percent_Sign;
-
-   -----------------------------
-   -- Decimal_Point_Character --
-   -----------------------------
-
-   function Decimal_Point_Character return String is
-      Lconv : C_Lconv_Access := C_Localeconv;
-   begin
-      if Lconv.Decimal_Point = Null_Ptr then
-         return Ada_Dec_Point_Character;
-      else
-         return Value (Lconv.Decimal_Point);
-      end if;
-   exception
-      when others => return Ada_Dec_Point_Character;
-   end Decimal_Point_Character;
-
-   -----------------------------
-   -- Thousands_Sep_Character --
-   -----------------------------
-
-   function Thousands_Sep_Character return String is
-      Lconv : C_Lconv_Access := C_Localeconv;
-   begin
-      if Lconv.Thousands_Sep = Null_Ptr then
-         return "";
-      else
-         declare
-            S : String := Value (Lconv.Thousands_Sep);
-         begin
-            if S'Length > 1 then
-               return " ";
-            else
-               return S;
-            end if;
-         end;
-      end if;
-   exception
-      when others => return "";
-   end Thousands_Sep_Character;
-
-   ---------------------------
-   -- Separate_Digit_Groups --
-   ---------------------------
+   ----------------------------------------------------------------------------
+   --  Private functions
+   ----------------------------------------------------------------------------
    
-   function Separate_Digit_Groups
-     (Text_Value : String;
-      Separator  : String;
-      Group_Size : Integer) return String
-   is
-      Tmp : Unbounded_String := Null_Unbounded_String;
-      I   : Integer;
-      J   : Integer := Text_Value'Last;
+   ------------------------
+   -- Raise_Format_Error --
+   ------------------------
+
+   procedure Raise_Format_Error (Format : Format_Type) is
    begin
-      if Separator'Length = 0 then
-         return Text_Value;
-      end if;
-
-      while J >= Text_Value'First loop
-         I := J - Group_Size + 1;
-         
-         if I <= Text_Value'First then
-            Insert (Tmp, 1, Text_Value (Text_Value'First .. J));
-            exit;
-         else
-            Insert (Tmp, 1, Separator & Text_Value (I .. J));
-         end if;
-
-         J := J - Group_Size;
-      end loop;
-      
-      return To_String (Tmp);
-
-   exception
-      when others => return "";
-   end Separate_Digit_Groups;
-
-   --  ---------------------------------
-   --  -- Separate_Based_Digit_Groups --
-   --  ---------------------------------
-   --  
-   --  function Separate_Based_Digit_Groups
-   --    (Text_Value : String;
-   --     Separator  : String;
-   --     Group_Size : Integer) return String
-   --  is
-   --     Tmp : Unbounded_String := Null_Unbounded_String;
-   --     NS1 : Natural := Index (Text_Value, "#", Text_Value'First);
-   --     NS2 : Natural;
-   --  begin
-   --     if NS1 > 0 then
-   --        NS2 := Index (Text_Value, "#", NS1 + 1);
-   --     else
-   --        return "";
-   --     end if;
-   --  
-   --     declare
-   --        TS : String := Text_Value (NS1 + 1 .. NS2 - 1);
-   --        I  : Integer;
-   --        J  : Integer := TS'Last;
-   --     begin
-   --        while J >= TS'First loop
-   --           I := J - Group_Size + 1;
-   --  
-   --           if I <= TS'First then
-   --              Insert (Tmp, 1, TS (TS'First .. J));
-   --              exit;
-   --           end if;
-   --  
-   --           Insert (Tmp, 1, Separator & TS (I .. J));
-   --           J := J - Group_Size;
-   --        end loop;
-   --     end;
-   --  
-   --     Tmp := Text_Value (Text_Value'First .. NS1) & Tmp;
-   --     Tmp := Tmp & Text_Value (NS2 .. Text_Value'Last);
-   --     return To_String (Tmp);
-   --  
-   --  exception
-   --     when others => return "";
-   --  end Separate_Based_Digit_Groups;
-
-   ----------------------
-   -- Set_Leading_Zero --
-   ----------------------
-   
-   function Set_Leading_Zero (Img : String) return String is
-      S   : String := Img;
-      FD  : Natural := 0;
-      Cur : Natural := 0;
-      NS1 : Natural := 0;
-   begin
-      FD := Index_Non_Blank (Img, Forward);
-
-      if Img (FD) = '-' or else Img (FD) = '+' then
-         S (1) := Img (FD);
-         Cur := 1;
-         FD := FD + 1;
-      end if;
-
-      --  check using base
-      NS1 := Index
-        (Source => Img,
-         Set    => To_Set ("#xX"),
-         From   => FD,
-         Test   => Inside,
-         Going  => Forward);
-      
-      if NS1 > 0 then
-         for I in FD .. NS1 loop
-            Cur := Cur + 1;
-            S (Cur) := Img (I);
-         end loop;
-
-         for I in Cur + 1 .. NS1 loop
-            S (I) := '0';
-         end loop;
-      else
-         for I in Cur + 1 .. FD - 1 loop
-            S (I) := '0';
-         end loop;
-      end if;
-      
-      return S;
-   end Set_Leading_Zero;
-
-   ----------------------
-   -- Set_Leading_Zero --
-   ----------------------
-   
-   function Set_Leading_Zero
-     (Img : String; Separator : String; Group_Size : Integer) return String
-   is
-      S   : String := Img;
-      FD  : Natural := Index_Non_Blank (Img, Forward);
-      Cur : Natural := 0;
-      NS1 : Natural := 0;
-      NS2 : Natural := 0;
-      I   : Integer := 0;
-      J   : Integer := 0;
-   begin
-      if Separator'Length = 0 then
-         return Set_Leading_Zero (Img);
-      end if;
-      
-      FD := Index_Non_Blank (Img, Forward);
-      
-      if Img (FD) = '-' or else Img (FD) = '+' then
-         S (1) := Img (FD);
-         Cur := 1;
-         FD := FD + 1;
-      end if;
-
-      --  check using base
-      NS1 := Index
-        (Source => Img,
-         Set    => To_Set ("#xX"),
-         From   => FD,
-         Test   => Inside,
-         Going  => Forward);
-      NS2 := Index (Img, Separator, FD);
-
-      if NS1 > 0 then
-         for I in FD .. NS1 loop
-            Cur := Cur + 1;
-            S (Cur) := Img (I);
-         end loop;
-         
-         I := Cur + 1;
-         J := NS1;
-         
-         if NS2 = 0 then
-            NS2 := Img'Length - Group_Size - 1;
-         end if;
-      else
-         I := Cur + 1;
-         J := FD - 1;
-         
-         if NS2 = 0 then
-            NS2 := Img'Length - Group_Size;
-         end if;
-      end if;
-      
-      for P in I .. J loop
-         S (P) := '0';
-      end loop;
-      
-      S (NS2) := Separator (Separator'First);
-      J := NS2;
-      
-      while J >= Cur + 1 loop
-         I := J - Group_Size - 1;
-         
-         if I >= Cur + 1 then
-            S (I) := Separator (Separator'First);
-         end if;
-         
-         J := I;
-      end loop;
-
-      if NS1 = 0 and then S (Cur + 1) = Separator (Separator'First) then
-         if Cur = 0 then
-            S (1) := Filler;
-         else         
-            S (Cur + 1) := S (Cur);
-            S (Cur) := Filler;
-         end if;
-      elsif NS1 > 0 and then S (Cur + 1) = Separator (Separator'First) then
-         for P in reverse 2 .. Cur + 1 loop
-            S (P) := S (P - 1);
-         end loop;
-         
-         S (1) := Filler;
-      end if;
-      
-      return S;
-   end Set_Leading_Zero;
+      raise Format_Error with
+        "wrong format specified: " & Get_Image (Format);
+   end Raise_Format_Error;
 
 end Formatted_Output;

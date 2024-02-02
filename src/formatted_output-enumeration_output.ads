@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2024 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -38,22 +38,26 @@ package Formatted_Output.Enumeration_Output is
    --
    --  Format sequences for enumeration types:
    --
-   --  %[flags][<width>](c|l|u|m)
+   --  %[flags][width](t|l|U|m)
    --
    --  Flag characters can be:
-   --     +   The converted value is to be right adjusted on the field boundary.
-   --         (This is default.)
-   --     -   The converted value is to be left adjusted on the field boundary.
-   --         (The default is right justification.)
-   --     *   The converted value is to be center adjusted on the field boundary.
-   --         (The default is right justification.)
+   --     <, -   The converted value is to be left adjusted on the field boundary.
+   --            (The default is right justification.)
+   --     >      The converted value is to be right adjusted on the field boundary.
+   --            (This is default.)
+   --     ^      The converted value is to be center adjusted on the field boundary.
+   --            (The default is right justification.)
    --
-   --  <width> is decimal number specifying minimum field width.
+   --  Width:
+   --     number   Integer number specifying minimal field width.
+   --     *        The width is not specified in the format string, but as an
+   --              additional integer value argument preceding the argument
+   --              that has to be formatted.
    --
    --  Format specifier can be:
-   --     c   convert capitalized.
+   --     t   convert capitalized.
    --     l   convert in lower case.
-   --     u   convert in upper case.
+   --     U   convert in upper case.
    --     m   convert in mixed case.
 
 end Formatted_Output.Enumeration_Output;

@@ -8,7 +8,7 @@ project Formatted_Output_NG is
    for Main use ();
 
    package Ide is
-      for Documentation_Dir use "doc";
+      for Documentation_Dir use "doc_api";
    end Ide;
 
    package Builder is

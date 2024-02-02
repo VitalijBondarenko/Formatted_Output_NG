@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2024 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -32,51 +32,38 @@ with Ada.Strings;             use Ada.Strings;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 
+with Formatted_Output.Utils;  use Formatted_Output.Utils;
+
 package body Formatted_Output.Enumeration_Output is
 
    package Item_Type_IO is new Ada.Text_IO.Enumeration_IO (Item_Type);
    use Item_Type_IO;
 
-   type Style_Type is
-     (Style_Capitalized, Style_Lower_Case, Style_Upper_Case, Style_Mixed);
+   function Format_Enum
+     (Value : Item_Type; Fmt_Spec : Format_Data_Record) return String;
 
-   function Format
-     (Value         : Item_Type;
-      Initial_Width : Integer;
-      Justification : Alignment;
-      Style         : Style_Type) return String;
+   -----------------
+   -- Format_Enum --
+   -----------------
 
-   ------------
-   -- Format --
-   ------------
-
-   function Format
-     (Value         : Item_Type;
-      Initial_Width : Integer;
-      Justification : Alignment;
-      Style         : Style_Type) return String
+   function Format_Enum
+     (Value : Item_Type; Fmt_Spec : Format_Data_Record) return String
    is
-      Img        : String (1 .. Maximal_Item_Length);
-      Width      : Integer;
-      Real_Width : Integer;
-      Past_Last  : Integer := Img'First;
-      Ind        : Natural;
+      Img : String := To_Lower (Item_Type'Image (Value));
+      Ind : Natural;
    begin
-      Put (Img, Value, Lower_Case);
-      Past_Last := Index_Non_Blank (Img, Backward);
-
-      case Style is
-         when Style_Capitalized =>
+      case Fmt_Spec.Letter_Case is
+         when Capitalized =>
             Img (Img'First) := To_Upper (Img (Img'First));
-         when Style_Lower_Case  =>
+         when Lower_Case  =>
             null;
-         when Style_Upper_Case  =>
+         when Upper_Case  =>
             Img := To_Upper (Img);
-         when Style_Mixed       =>
+         when Mixed       =>
             Img (Img'First) := To_Upper (Img (Img'First));
             Ind := Img'First + 1;
 
-            while Ind < Past_Last loop
+            while Ind < Img'Last loop
                if Img (Ind) = '_' then
                   Ind := Ind + 1;
                   Img (Ind) := To_Upper (Img (Ind));
@@ -86,89 +73,36 @@ package body Formatted_Output.Enumeration_Output is
             end loop;
       end case;
 
-      Real_Width := Past_Last;
-      Width := Integer'Max (Initial_Width, Real_Width);
-
       declare
-         S : String (1 .. Width);
+         S : String (1 .. Integer'Max (Fmt_Spec.Width, Img'Length));
       begin
          Move
-           (Source  => Img (Past_Last - Real_Width + 1 .. Past_Last),
+           (Source  => Img,
             Target  => S,
             Drop    => Error,
-            Justify => Justification,
+            Justify => Fmt_Spec.Align,
             Pad     => Filler);
          return S;
       end;
-   end Format;
+   end Format_Enum;
 
    ---------
    -- "&" --
    ---------
 
    function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type is
-      Command_Start         : constant Integer := Scan_To_Percent_Sign (Fmt);
-      Width                 : Integer := 0;
-      Digit_Occured         : Boolean := False;
-      Justification_Changed : Boolean := False;
-      Justification         : Alignment := Right;
-      Fmt_Copy              : Unbounded_String;
+      Fmt_Copy : Unbounded_String;
+      Fmt_Spec : Format_Data_Record;
    begin
-      if Command_Start /= 0 then
-         Fmt_Copy := Unbounded_String (Fmt);
+      Fmt_Copy := Unbounded_String (Fmt);
 
-         for I in Command_Start + 1 .. Length (Fmt_Copy) loop
-            case Element (Fmt_Copy, I) is
-               when 'c'             =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Style_Capitalized));
-                  return Format_Type (Fmt_Copy);
+      Fmt_Spec.Align := Left;
+      Parse_Format (Fmt, Fmt_Spec);
 
-               when 'u'             =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Style_Upper_Case));
-                  return Format_Type (Fmt_Copy);
-
-               when 'l'             =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Style_Lower_Case));
-                  return Format_Type (Fmt_Copy);
-
-               when 'm'             =>
-                  Replace_Slice
-                    (Fmt_Copy, Command_Start, I,
-                     Format (Value, Width, Justification, Style_Mixed));
-                  return Format_Type (Fmt_Copy);
-
-               when '-' | '+' | '<' | '>' | '^' =>
-                  if Justification_Changed or else Digit_Occured then
-                     raise Format_Error;
-                  end if;
-
-                  Justification_Changed := True;
-
-                  case Element (Fmt_Copy, I) is
-                     when '-' | '<' => Justification := Left;
-                     when '+' | '>' => Justification := Right;
-                     when '^'       => Justification := Center;
-                     when others    => null;
-                  end case;
-
-               when '0' .. '9'      =>
-                  Width := Width * 10
-                    + Character'Pos (Element (Fmt_Copy, I))
-                    - Character'Pos ('0');
-
-               when others          =>
-                  raise Format_Error;
-            end case;
-         end loop;
-      end if;
-
-      raise Format_Error;
+      Replace_Slice
+        (Fmt_Copy, Fmt_Spec.Spec_Start, Fmt_Spec.Spec_End,
+         Format_Enum (Value, Fmt_Spec));
+      return Format_Type (Fmt_Copy);
    end "&";
 
 end Formatted_Output.Enumeration_Output;

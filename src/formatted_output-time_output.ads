@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2024 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -76,6 +76,7 @@ package Formatted_Output.Time_Output is
    --          single digits are preceded by a blank.
    --     %m   The month as a decimal number (01 .. 12).
    --     %M   The minute as a decimal number (00 .. 59).
+   --     %n   A newline character.
    --     %p   Either "AM" or "PM" according to the given time value, or the
    --          corresponding strings for the current locale.
    --          Noon is treated as "PM" and midnight as "AM".
@@ -87,14 +88,15 @@ package Formatted_Output.Time_Output is
    --     %s   The number of seconds since the Epoch,
    --          1970-01-01 00:00:00 +0000 (UTC).
    --     %S   The second as a decimal number (00 .. 59).
+   --     %t   A tab character.
    --     %T   The time in 24-hour notation (%H:%M:%S).
    --     %u   The day of the week as a decimal (1 .. 7), Monday being 1.
    --     %U   The week number of the current year as a decimal number
-   --          (00 .. 53), starting with the first Sunday as the first day of
+   --          (01 .. 53), starting with the first Sunday as the first day of
    --          week 01.
    --     %w   The day of the week as a decimal (0 .. 6), Sunday being 0.
    --     %W   The week number of the current year as a decimal number
-   --          (00 .. 53), starting with the first Monday as the first day of
+   --          (01 .. 53), starting with the first Monday as the first day of
    --          week 01.
    --     %x   The preferred date representation for the current locale without
    --          the time. (In the POSIX locale this is equivalent to %m/%d/%y.)
@@ -113,6 +115,7 @@ package Formatted_Output.Time_Output is
    --     %N   The nanoseconds as a decimal number (000000000 .. 999999999).
    --
    --  Modifiers:
+   --      E   Use alternative ("era‐based") format.
    --      O   Use alternative numeric symbols.
    --
    --  The following flag characters are permitted:

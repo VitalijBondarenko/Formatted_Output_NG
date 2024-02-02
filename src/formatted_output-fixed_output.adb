@@ -26,25 +26,22 @@
 -- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                   --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Formatted_Output.Utils; use Formatted_Output.Utils;
 
-with Formatted_Output.Utils;  use Formatted_Output.Utils;
-
-package body Formatted_Output.Float_Output is
+package body Formatted_Output.Fixed_Output is
 
    ---------
    -- "&" --
    ---------
 
-   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type
-   is
+   function "&" (Fmt : Format_Type; Value : Item_Type) return Format_Type is
       Fmt_Copy : Unbounded_String;
       Fmt_Spec : Format_Data_Record;
       Img      : Real_Image;
    begin
       Fmt_Copy := Unbounded_String (Fmt);
 
-      Fmt_Spec.Value_Kind := V_Float;
+      Fmt_Spec.Value_Kind := V_Fixed;
       Fmt_Spec.Align := Right;
       --  Fmt_Spec.Base_Style := Ada_Base_Style;
       Fmt_Spec.Notation := Decimal_Notation;
@@ -52,11 +49,7 @@ package body Formatted_Output.Float_Output is
 
       --  Check precision
       if Fmt_Spec.Precision = Undefined then
-         if Fmt_Spec.Base = 16 then
-            Fmt_Spec.Precision := Item_Type'Digits - 1;
-         else
-            Fmt_Spec.Precision := 6;
-         end if;
+         Fmt_Spec.Precision := Item_Type'Aft;
       end if;
 
       Real_To_Text (Img, Long_Long_Float (Value), Fmt_Spec);
@@ -66,4 +59,4 @@ package body Formatted_Output.Float_Output is
       return Format_Type (Fmt_Copy);
    end "&";
 
-end Formatted_Output.Float_Output;
+end Formatted_Output.Fixed_Output;

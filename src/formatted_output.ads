@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2016-2023 Vitalii Bondarenko <vibondare@gmail.com>         --
+-- Copyright (c) 2016-2024 Vitalii Bondarenko <vibondare@gmail.com>         --
 --                                                                          --
 ------------------------------------------------------------------------------
 --                                                                          --
@@ -26,6 +26,7 @@
 -- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                   --
 ------------------------------------------------------------------------------
 
+with Ada.Strings;           use Ada.Strings;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
@@ -33,8 +34,6 @@ package Formatted_Output is
 
    type Format_Type is private;
 
-   Empty_Format : constant Format_Type;
-   
    function To_String (Fmt : Format_Type) return String;
    --  Convert formatted string to fixed-length string.
    --  Example:
@@ -66,17 +65,52 @@ package Formatted_Output is
    --
    --  Format sequences for strings:
    --
-   --  %[flags][<width>]s
+   --  %[flags][width][.precision]s
    --  
    --  Flag characters can be:
-   --     +   The converted value is to be right adjusted on the field boundary.
-   --         (This is default.)
-   --     -   The converted value is to be left adjusted on the field boundary.
-   --         (The default is right justification.)
-   --     *   The converted value is to be center adjusted on the field boundary.
-   --         (The default is right justification.)
+   --     >      The converted value is to be right adjusted on the field boundary.
+   --            (The default is left justification.)
+   --     <, -   The converted value is to be left adjusted on the field boundary.
+   --            (This is default.)
+   --     ^      The converted value is to be center adjusted on the field boundary.
+   --            (The default is left justification.)
    --  
-   --  <width> is decimal number specifying minimal field width.
+   --  Width:
+   --     number   Integer number specifying minimal field width.
+   --     *        The width is not specified in the format string, but as an
+   --              additional integer value argument preceding the argument
+   --              that has to be formatted.
+   --  
+   --  Precision:
+   --     .number  Integer number specifying the maximum number of characters
+   --              to be printed.
+   --     .*       The precision is not specified in the format string, but as
+   --              an additional integer value argument preceding the argument
+   --              that has to be formatted.
+
+   function "&" (Fmt : Format_Type; Value : Character) return Format_Type;
+   --  Replaces leftmost formatting sequence in Fmt with formatted Value
+   --  string, then returns Fmt. Raises exception Format_Error when invalid
+   --  string formatting sequence is found or no formatting sequence found
+   --  at all.
+   --
+   --  Format sequences for character:
+   --
+   --  %[flags][width]c
+   --  
+   --  Flag characters can be:
+   --     >      The converted value is to be right adjusted on the field boundary.
+   --            (The default is left justification.)
+   --     <, -   The converted value is to be left adjusted on the field boundary.
+   --            (This is default.)
+   --     ^      The converted value is to be center adjusted on the field boundary.
+   --            (The default is left justification.)
+   --  
+   --  Width:
+   --     number   Integer number specifying minimal field width.
+   --     *        The width is not specified in the format string, but as an
+   --              additional integer value argument preceding the argument
+   --              that has to be formatted.
 
    procedure Put (Fmt : Format_Type);
    --  Puts formatted string to console using Ada.Text_IO
@@ -100,58 +134,14 @@ package Formatted_Output is
    Filler : constant Character := ' ';
    --  Filling character, used when padding strings
 
-   function Image_String (Fmt : Format_Type) return String;
-   --  Returns formatting sequence in Fmt as string
+   function Get_Image (Fmt : Format_Type) return String;
+   --  Returns a string representing the value Fmt in display form
 
 private
 
    type Format_Type is new Ada.Strings.Unbounded.Unbounded_String;
-   
-   Empty_Format        : constant Format_Type := To_Unbounded_String ("");
-   Maximal_Item_Length : constant := 255;
 
-   function Scan_To_Percent_Sign (Fmt : Format_Type) return Integer;
-   --  Scans string to the first occurence of percent sign ignoring the double
-   --  percent, returns index of the found sign or zero, if no percent sign is
-   --  found
+   procedure Raise_Format_Error (Format : Format_Type) with No_Return;
+   --  Raise the Format_Error exception which information about the context
 
-   function Decimal_Point_Character return String;
-
-   function Thousands_Sep_Character return String;
-   
-   Ada_Dec_Point_Character : constant String := ".";
-   Ada_Sep_Character       : constant String := "_";
-   
-   type Digit_Grouping is (None, Ada_Grouping_Style, NLS_Grouping_Style);
-
-   subtype Base_Type is Integer range 2 .. 16;
-
-   type Base_Style_Kind is (None, C_Base_Style, Ada_Base_Style);
-
-   function Separate_Digit_Groups
-     (Text_Value : String;
-      Separator  : String;
-      Group_Size : Integer) return String;
-   --  Separate the digit groups for the image without base or decimal value.
-   --
-   --  Text_Value : Image of the value as a string without leading and trailing
-   --               spaces.
-   --  Separator  : The character used to separate groups of digits.
-   --  Group_Size : Size of the group of digits.
-   
-   --  function Separate_Based_Digit_Groups
-   --    (Text_Value : String;
-   --     Separator  : String;
-   --     Group_Size : Integer) return String;
-   --  --  Separate the digit groups for the image with base.
-   --  --
-   --  --  Text_Value : Image of the value as a string without leading and trailing
-   --  --               spaces.
-   --  --  Separator  : The character used to separate groups of digits.
-   --  --  Group_Size : Size of the group of digits.
-   
-   function Set_Leading_Zero (Img : String) return String;
-   function Set_Leading_Zero
-     (Img : String; Separator : String; Group_Size : Integer) return String;
-   
 end Formatted_Output;
